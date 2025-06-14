@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Data Analyst Practice Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.0/dist/cdn.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/lottie-web@5.7.4/build/player/lottie.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen font-sans">
+
+  <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-10 text-center shadow-md relative overflow-hidden">
+    <div class="absolute inset-0 opacity-20">
+      <div class="absolute top-0 left-0 w-32 h-32 bg-purple-300 rounded-full filter blur-xl animate-pulse"></div>
+      <div class="absolute bottom-0 right-0 w-40 h-40 bg-indigo-300 rounded-full filter blur-xl animate-pulse delay-300"></div>
+    </div>
+    <div class="relative z-10">
+      <h1 class="text-5xl font-bold animate__animated animate__fadeInDown">🚀 Advanced Data Analyst Challenge</h1>
+      <p class="text-lg mt-3 animate__animated animate__fadeIn animate__delay-1s">SQL + Python + Excel + Business Intelligence</p>
+      <div class="mt-4 flex justify-center gap-4">
+        <div class="badge bg-white/20 px-3 py-1 rounded-full">Interactive</div>
+        <div class="badge bg-white/20 px-3 py-1 rounded-full">Real-world</div>
+        <div class="badge bg-white/20 px-3 py-1 rounded-full">Feedback</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-12">
+    <div x-data="testApp()" x-init="init()" class="space-y-8">
+      <!-- Progress Tracker -->
+      <div class="bg-white p-6 rounded-2xl shadow-md sticky top-4 z-10">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold text-gray-700">Your Progress</h3>
+          <span class="text-indigo-600 font-bold" x-text="`${completedCount}/${questions.length} Completed`"></span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
+               :style="`width: ${(completedCount/questions.length)*100}%`"></div>
+        </div>
+        <div class="flex justify-between mt-4">
+          <div class="text-center">
+            <div class="text-2xl font-bold" x-text="score"></div>
+            <div class="text-xs text-gray-500">SCORE</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold" x-text="streak"></div>
+            <div class="text-xs text-gray-500">STREAK</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-bold" x-text="`${Math.round((completedCount/questions.length)*100)}%`"></div>
+            <div class="text-xs text-gray-500">COMPLETION</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questions Section -->
+      <template x-for="(q, index) in questions" :key="q.id">
+        <section class="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition duration-300 relative"
+                 :class="{'ring-2 ring-indigo-500': activeQuestion === q.id}">
+          <!-- Question Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h2 class="text-xl font-semibold text-blue-700">
+                <span x-text="`Q${q.id}`"></span> 
+                <span class="text-sm bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full ml-2" x-text="q.section"></span>
+              </h2>
+              <div class="flex gap-2 mt-1">
+                <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full" x-text="q.difficulty"></span>
+                <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full" x-text="`${q.points} pts`"></span>
+              </div>
+            </div>
+            <div x-show="answers[q.id]?.completed" class="text-green-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Question Content -->
+          <div class="mb-6 space-y-4">
+            <p class="text-gray-800" x-text="q.text"></p>
+            
+            <!-- Visual Schema for SQL Questions -->
+            <template x-if="q.section === 'SQL' && q.schema">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="text-sm font-mono text-gray-500 mb-2">Database Schema:</div>
+                <div class="overflow-x-auto">
+                  <pre class="text-xs"><code class="language-sql" x-text="q.schema"></code></pre>
+                </div>
+              </div>
+            </template>
+            
+            <!-- Sample Data Visualization -->
+            <template x-if="q.chartData">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="text-sm font-mono text-gray-500 mb-2">Sample Data:</div>
+                <div class="h-64">
+                  <canvas x-ref="chartCanvas-${q.id}"></canvas>
+                </div>
+              </div>
+            </template>
+            
+            <!-- Mermaid Diagram -->
+            <template x-if="q.mermaid">
+              <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="mermaid" x-text="q.mermaid"></div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Answer Area -->
+          <div class="space-y-4">
+            <!-- Multiple Choice -->
+            <template x-if="q.type === 'mcq'">
+              <div class="space-y-2">
+                <template x-for="(option, optIndex) in q.options" :key="optIndex">
+                  <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                         :class="{'bg-indigo-50 border-indigo-300': answers[q.id]?.value === option}">
+                    <input type="radio" :name="'q'+q.id" :value="option" x-model="answers[q.id].value" class="mr-2">
+                    <span x-text="option"></span>
+                  </label>
+                </template>
+              </div>
+            </template>
+            
+            <!-- Code Input -->
+            <template x-if="q.type === 'code'">
+              <div class="relative">
+                <div class="absolute top-2 right-2 flex gap-2 z-10">
+                  <button @click="formatCode(q.id)" class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">
+                    Format
+                  </button>
+                  <button @click="executeCode(q.id)" class="text-xs bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded">
+                    Run
+                  </button>
+                </div>
+                <textarea class="w-full h-40 font-mono text-sm p-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-400" 
+                          x-model="answers[q.id].value" spellcheck="false"></textarea>
+                <div x-show="answers[q.id]?.output" class="mt-2 p-3 bg-gray-800 text-green-400 rounded-md font-mono text-sm overflow-x-auto">
+                  <div class="text-gray-400 mb-1">Output:</div>
+                  <div x-text="answers[q.id]?.output"></div>
+                </div>
+              </div>
+            </template>
+            
+            <!-- Text Answer -->
+            <template x-if="q.type === 'text'">
+              <textarea class="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring focus:border-blue-400" 
+                        rows="4" placeholder="Type your answer..." x-model="answers[q.id].value"></textarea>
+            </template>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex justify-between mt-6">
+            <button class="text-gray-500 hover:text-gray-700 flex items-center text-sm"
+                    @click="showHint(q.id)" x-show="!q.hintShown">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Need a hint?
+            </button>
+            <div class="flex gap-3 ml-auto">
+              <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
+                      @click="resetAnswer(q.id)" x-show="answers[q.id]?.value">
+                Reset
+              </button>
+              <button class="bg-indigo-500 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition flex items-center"
+                      @click="checkAnswer(q.id)"
+                      :disabled="!answers[q.id]?.value"
+                      :class="{'opacity-50 cursor-not-allowed': !answers[q.id]?.value}">
+                <span x-text="answers[q.id]?.completed ? 'Update' : 'Submit'"></span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" x-show="!answers[q.id]?.completed">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Feedback Section -->
+          <div x-show="activeQuestion === q.id" x-transition class="mt-6 space-y-4">
+            <!-- Hint -->
+            <div x-show="q.hintShown" class="p-4 rounded-md border-l-4 border-yellow-500 bg-yellow-50 animate__animated animate__fadeIn">
+              <h3 class="font-semibold text-yellow-700 mb-2">💡 Hint</h3>
+              <p class="text-gray-700" x-text="q.hint"></p>
+            </div>
+            
+            <!-- Answer Feedback -->
+            <template x-if="answers[q.id]?.feedback">
+              <div class="p-4 rounded-md border-l-4" 
+                   :class="answers[q.id]?.correct ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'">
+                <h3 class="font-semibold mb-2" 
+                    :class="answers[q.id]?.correct ? 'text-green-700' : 'text-red-700'">
+                  <span x-text="answers[q.id]?.correct ? '✅ Correct!' : '❌ Needs Improvement'"></span>
+                </h3>
+                <p class="text-gray-700 mb-2" x-text="answers[q.id]?.feedback"></p>
+                
+                <template x-if="!answers[q.id]?.correct">
+                  <div>
+                    <h4 class="font-medium text-gray-800 mt-3 mb-1">Suggested Answer:</h4>
+                    <div class="bg-gray-800 text-green-400 p-3 rounded-md font-mono text-sm overflow-x-auto">
+                      <pre x-text="q.answer"></pre>
+                    </div>
+                    
+                    <template x-if="q.explanation">
+                      <div class="mt-3">
+                        <h4 class="font-medium text-gray-800 mb-1">Explanation:</h4>
+                        <p class="text-gray-700" x-text="q.explanation"></p>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </section>
+      </template>
+
+      <!-- Completion Screen -->
+      <div x-show="completedCount === questions.length" x-transition class="text-center py-16">
+        <div id="celebration-anim" class="mx-auto w-64 h-64"></div>
+        <h2 class="text-3xl font-bold text-indigo-700 mt-6">🎉 Test Completed!</h2>
+        <p class="text-xl text-gray-600 mt-3">Your final score: <span class="font-bold" x-text="score"></span> points</p>
+        <div class="mt-8 bg-white p-6 rounded-xl shadow-md inline-block">
+          <div class="flex justify-center gap-8">
+            <div class="text-center">
+              <div class="text-4xl font-bold text-indigo-600" x-text="Math.round((score/maxPossibleScore)*100)"></div>
+              <div class="text-gray-500">Percentage</div>
+            </div>
+            <div class="text-center">
+              <div class="text-4xl font-bold text-indigo-600" x-text="correctAnswers"></div>
+              <div class="text-gray-500">Correct Answers</div>
+            </div>
+            <div class="text-center">
+              <div class="text-4xl font-bold text-indigo-600" x-text="highestStreak"></div>
+              <div class="text-gray-500">Highest Streak</div>
+            </div>
+          </div>
+        </div>
+        <button @click="resetTest()" class="mt-8 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition">
+          Take Test Again
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function testApp() {
+      return {
+        activeQuestion: null,
+        answers: {},
+        questions: [
+          {
+            id: 1,
+            section: 'SQL',
+            type: 'code',
+            difficulty: 'Medium',
+            points: 20,
+            text: 'Write a SQL query to find the top 3 product categories by total sales revenue from customers in the South region during May 2024.',
+            schema: `-- Database Schema
+CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(100),
+  region VARCHAR(50)  -- 'North', 'South', 'East', 'West'
+);
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT REFERENCES customers(customer_id),
+  order_date DATE,
+  total_amount DECIMAL(10,2)
+);
+
+CREATE TABLE order_items (
+  item_id INT PRIMARY KEY,
+  order_id INT REFERENCES orders(order_id),
+  product_id INT REFERENCES products(product_id),
+  quantity INT,
+  price DECIMAL(10,2)
+);
+
+CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  name VARCHAR(100),
+  category VARCHAR(50),
+  price DECIMAL(10,2)
+);`,
+            hint: 'You need to JOIN all 4 tables, filter by region and date, GROUP BY category, and ORDER BY revenue.',
+            answer: `SELECT p.category, SUM(oi.quantity * oi.price) AS total_revenue
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE c.region = 'South'
+  AND o.order_date BETWEEN '2024-05-01' AND '2024-05-31'
+GROUP BY p.category
+ORDER BY total_revenue DESC
+LIMIT 3;`,
+            explanation: 'This query joins all relevant tables to connect customers to products, filters for the South region and May 2024 dates, calculates revenue (quantity × price) for each product, sums by category, and returns the top 3 highest revenue categories.'
+          },
+          {
+            id: 2,
+            section: 'SQL',
+            type: 'code',
+            difficulty: 'Hard',
+            points: 25,
+            text: 'Find customers who made purchases in March 2024 but did not make any purchases in April 2024.',
+            schema: `-- Using the same database schema as Question 1`,
+            hint: 'Consider using a subquery with EXISTS for March and NOT EXISTS for April, or use LEFT JOIN with NULL check.',
+            answer: `-- Method 1: Using EXISTS and NOT EXISTS
+SELECT DISTINCT c.customer_id, c.name
+FROM customers c
+WHERE EXISTS (
+  SELECT 1 FROM orders o 
+  WHERE o.customer_id = c.customer_id
+    AND o.order_date BETWEEN '2024-03-01' AND '2024-03-31'
+)
+AND NOT EXISTS (
+  SELECT 1 FROM orders o 
+  WHERE o.customer_id = c.customer_id
+    AND o.order_date BETWEEN '2024-04-01' AND '2024-04-30'
+);
+
+-- Method 2: Using LEFT JOIN
+SELECT DISTINCT c.customer_id, c.name
+FROM customers c
+JOIN orders o1 ON c.customer_id = o1.customer_id
+  AND o1.order_date BETWEEN '2024-03-01' AND '2024-03-31'
+LEFT JOIN orders o2 ON c.customer_id = o2.customer_id
+  AND o2.order_date BETWEEN '2024-04-01' AND '2024-04-30'
+WHERE o2.order_id IS NULL;`,
+            explanation: 'Both methods identify customers with March orders but no April orders. Method 1 uses subqueries with EXISTS/NOT EXISTS which is often more efficient. Method 2 uses a LEFT JOIN and checks for NULL which some find more readable.'
+          },
+          {
+            id: 3,
+            section: 'Excel',
+            type: 'text',
+            difficulty: 'Medium',
+            points: 15,
+            text: 'Describe how you would create a dynamic dashboard in Excel that shows profit margin by product category with a slicer for date ranges (monthly/quarterly). What formulas and features would you use?',
+            chartData: {
+              labels: ['Electronics', 'Clothing', 'Home Goods', 'Groceries'],
+              datasets: [{
+                label: 'Profit Margin %',
+                data: [32, 45, 28, 19],
+                backgroundColor: [
+                  'rgba(79, 70, 229, 0.6)',
+                  'rgba(99, 102, 241, 0.6)',
+                  'rgba(129, 140, 248, 0.6)',
+                  'rgba(165, 180, 252, 0.6)'
+                ],
+                borderColor: [
+                  'rgba(79, 70, 229, 1)',
+                  'rgba(99, 102, 241, 1)',
+                  'rgba(129, 140, 248, 1)',
+                  'rgba(165, 180, 252, 1)'
+                ],
+                borderWidth: 1
+              }]
+            },
+            hint: 'Think about PivotTables, calculated fields, slicers, and GETPIVOTDATA for dynamic charts.',
+            answer: `1. Data Preparation:
+   - Ensure your data has columns: Date, Product Category, Revenue, Cost
+   - Add a calculated column: Profit Margin = (Revenue - Cost)/Revenue
+   - Format as a Table (Ctrl+T) for dynamic ranges
+
+2. Create PivotTable:
+   - Rows: Product Category
+   - Values: Sum of Revenue, Sum of Cost
+   - Add Calculated Field: "Profit Margin %" = (Revenue - Cost)/Revenue
+   - Format as percentage
+
+3. Create PivotChart:
+   - Column chart showing Profit Margin % by Category
+   - Add data labels
+
+4. Add Slicers:
+   - Insert Slicer for Date field
+   - Group dates by Months and Quarters
+   - Connect slicer to all PivotTables/Charts
+
+5. Dashboard Layout:
+   - Place slicers at the top
+   - Add KPIs using GETPIVOTDATA to reference PivotTable values
+   - Use conditional formatting for visual indicators`,
+            explanation: 'This approach creates a fully interactive dashboard where users can filter by date ranges and see profit margins update dynamically. The key is using PivotTable calculated fields for metrics and slicers for user interaction.'
+          },
+          {
+            id: 4,
+            section: 'Python',
+            type: 'code',
+            difficulty: 'Medium',
+            points: 20,
+            text: 'Write a Python script to scrape iPhone 15 reviews from Flipkart including product rating, review text, and date. Handle pagination and save results to a CSV file.',
+            mermaid: `%%{init: {'theme': 'neutral'}}%%
+sequenceDiagram
+    participant User
+    participant Script
+    participant Flipkart
+    User->>Script: Run scraper
+    Script->>Flipkart: Request product page
+    Flipkart-->>Script: Return HTML
+    Script->>Script: Parse reviews
+    Script->>Flipkart: Request next page (if exists)
+    Flipkart-->>Script: Return more reviews
+    Script->>Script: Save to CSV
+    Script-->>User: Completion message`,
+            hint: 'Use requests/BeautifulSoup or Selenium. Inspect Flipkart page structure for selectors. Handle rate limiting with delays.',
+            answer: `import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from time import sleep
+import random
+
+def scrape_flipkart_reviews(product_url, max_pages=5):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    all_reviews = []
+    
+    for page in range(1, max_pages + 1):
+        print(f"Scraping page {page}")
+        modified_url = f"{product_url}&page={page}"
+        response = requests.get(modified_url, headers=headers)
+        
+        if response.status_code != 200:
+            print(f"Failed to fetch page {page}")
+            break
+            
+        soup = BeautifulSoup(response.text, 'html.parser')
+        reviews = soup.find_all('div', {'class': '_1AtVbE'})
+        
+        for review in reviews:
+            try:
+                rating = review.find('div', {'class': '_3LWZlK'}).text
+                review_text = review.find('div', {'class': 't-ZTKy'}).text
+                date = review.find('p', {'class': '_2sc7ZR'}).text
+                reviewer = review.find('p', {'class': '_2sc7ZR _2V5EHH'}).text
+                
+                all_reviews.append({
+                    'rating': rating,
+                    'review': review_text,
+                    'date': date,
+                    'reviewer': reviewer
+                })
+            except AttributeError:
+                continue
+        
+        sleep(random.uniform(1, 3))  # Polite delay
+        
+    df = pd.DataFrame(all_reviews)
+    df.to_csv('flipkart_reviews.csv', index=False)
+    print(f"Saved {len(df)} reviews to CSV")
+
+# Example usage:
+product_url = "https://www.flipkart.com/apple-iphone-15/product-reviews/itm..."
+scrape_flipkart_reviews(product_url)`,
+            explanation: 'This script handles pagination, extracts key review elements, and saves to CSV. It includes random delays to avoid rate limiting and proper headers to mimic a browser. Error handling ensures the script continues if some elements are missing from certain reviews.'
+          },
+          {
+            id: 5,
+            section: 'Business Case',
+            type: 'mcq',
+            difficulty: 'Hard',
+            points: 30,
+            text: 'An e-commerce company sees a 15% drop in conversion rate. As a data analyst, what would be your approach to diagnose the issue?',
+            options: [
+              "A. Immediately suggest running a promotion to boost sales",
+              "B. Analyze user behavior funnel to identify where drop-offs occur",
+              "C. Compare conversion rates before/after recent website changes",
+              "D. Segment data by traffic source, device, and user demographics",
+              "E. All of B, C, and D"
+            ],
+            hint: 'Consider a data-driven approach to identify root causes before proposing solutions.',
+            answer: "E. All of B, C, and D",
+            explanation: 'The best approach combines multiple analytical techniques: funnel analysis to see where users drop off, comparing with recent changes to identify potential causes, and segmentation to see if the issue affects specific user groups. Jumping to solutions (A) without analysis would be premature.'
+          }
+        ],
+        score: 0,
+        streak: 0,
+        highestStreak: 0,
+        correctAnswers: 0,
+        maxPossibleScore: 0,
+        
+        init() {
+          this.maxPossibleScore = this.questions.reduce((sum, q) => sum + q.points, 0);
+          
+          // Initialize answers object
+          this.questions.forEach(q => {
+            this.answers[q.id] = {
+              value: '',
+              completed: false,
+              correct: false,
+              feedback: ''
+            };
+          });
+          
+          // Initialize charts
+          this.$nextTick(() => {
+            this.questions.forEach(q => {
+              if (q.chartData) {
+                this.initChart(q.id);
+              }
+            });
+            
+            // Initialize Lottie animations
+            lottie.loadAnimation({
+              container: document.getElementById('celebration-anim'),
+              renderer: 'svg',
+              loop: true,
+              autoplay: false,
+              path: 'https://assets1.lottiefiles.com/packages/lf20_obhph3sh.json'
+            });
+          });
+          
+          mermaid.initialize({ startOnLoad: false });
+          mermaid.init(undefined, '.mermaid');
+        },
+        
+        initChart(qId) {
+          const question = this.questions.find(q => q.id === qId);
+          const canvas = this.$refs[`chartCanvas-${qId}`];
+          
+          if (canvas && question.chartData) {
+            new Chart(canvas, {
+              type: 'bar',
+              data: question.chartData,
+              options: {
+                responsive: true,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    title: {
+                      display: true,
+                      text: 'Percentage (%)'
+                    }
+                  }
+                },
+                plugins: {
+                  legend: {
+                    display: false
+                  }
+                }
+              }
+            });
+          }
+        },
+        
+        formatCode(qId) {
+          const answer = this.answers[qId];
+          if (answer.value) {
+            try {
+              answer.value = hljs.highlightAuto(answer.value).value;
+            } catch (e) {
+              console.log('Error formatting code:', e);
+            }
+          }
+        },
+        
+        executeCode(qId) {
+          const answer = this.answers[qId];
+          if (answer.value) {
+            // In a real app, you'd send to a code execution API
+            answer.output = "Code execution simulated. In a real app, this would run the code.\n\nExample output:\ncategory | total_revenue\nElectronics | 12500.00\nClothing | 9800.00\nHome Goods | 7600.00";
+          }
+        },
+        
+        showHint(qId) {
+          const question = this.questions.find(q => q.id === qId);
+          question.hintShown = true;
+          this.activeQuestion = qId;
+        },
+        
+        checkAnswer(qId) {
+          const question = this.questions.find(q => q.id === qId);
+          const answer = this.answers[qId];
+          
+          // For demo purposes, we'll just check if answer isn't empty
+          // In a real app, you'd have more sophisticated checking
+          const isCorrect = answer.value.trim().length > 0;
+          
+          answer.completed = true;
+          answer.correct = isCorrect;
+          this.activeQuestion = qId;
+          
+          if (isCorrect) {
+            answer.feedback = "Good job! Your answer looks correct.";
+            this.score += question.points;
+            this.correctAnswers++;
+            this.streak++;
+            if (this.streak > this.highestStreak) {
+              this.highestStreak = this.streak;
+            }
+            
+            // Play success animation if this completes all questions
+            if (this.completedCount === this.questions.length) {
+              this.$nextTick(() => {
+                lottie.play('celebration-anim');
+              });
+            }
+          } else {
+            answer.feedback = "Let's review the suggested answer to improve your understanding.";
+            this.streak = 0;
+          }
+        },
+        
+        resetAnswer(qId) {
+          const answer = this.answers[qId];
+          answer.value = '';
+          answer.completed = false;
+          answer.correct = false;
+          answer.feedback = '';
+          
+          // If this was the last completed question, reduce score
+          if (answer.completed) {
+            const question = this.questions.find(q => q.id === qId);
+            this.score = Math.max(0, this.score - question.points);
+            this.correctAnswers--;
+          }
+        },
+        
+        resetTest() {
+          this.questions.forEach(q => {
+            this.answers[q.id] = {
+              value: '',
+              completed: false,
+              correct: false,
+              feedback: ''
+            };
+            if (q.hintShown) q.hintShown = false;
+          });
+          
+          this.score = 0;
+          this.streak = 0;
+          this.correctAnswers = 0;
+          this.activeQuestion = null;
+        },
+        
+        get completedCount() {
+          return Object.values(this.answers).filter(a => a.completed).length;
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
