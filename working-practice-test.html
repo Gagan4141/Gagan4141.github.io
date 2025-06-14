@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Analyst Practice Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.0/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .schema-panel {
+      background-color: #f8fafc;
+      border-left: 4px solid #94a3b8;
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen font-sans">
+  <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-10 text-center shadow-md">
+    <h1 class="text-5xl font-bold">📊 Data Analyst Practice Test</h1>
+    <p class="text-lg mt-3">SQL + Excel + Business + Python + Analytics</p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-12">
+    <div x-data="practiceTest()" x-init="init()" class="space-y-8">
+
+      <!-- Progress Tracker -->
+      <div class="bg-white p-6 rounded-2xl shadow-md sticky top-4 z-10">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-semibold text-gray-700">Your Progress</h2>
+          <span class="text-indigo-600 font-bold" x-text="`${completedCount}/${questions.length}`"></span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
+               :style="`width: ${(completedCount/questions.length)*100}%`"></div>
+        </div>
+        <div class="mt-3 text-sm text-gray-600" x-show="completedCount > 0">
+          <span>Score: </span>
+          <span class="font-semibold text-indigo-600" x-text="`${correctAnswers}/${completedCount}`"></span>
+          <span x-text="`(${Math.round((correctAnswers/completedCount)*100)}%)`"></span>
+        </div>
+      </div>
+
+      <!-- Error Display -->
+      <div x-show="error" x-transition class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+        <p class="text-sm text-red-700" x-text="error"></p>
+      </div>
+
+      <!-- Questions Section -->
+      <template x-for="(q, index) in questions" :key="q.id">
+        <div class="bg-white p-6 rounded-2xl shadow-md transition duration-300 mb-8"
+             :class="{'ring-2 ring-indigo-500': activeQuestion === q.id}">
+          
+          <!-- Question Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-semibold text-blue-700">
+                <span x-text="`Question ${q.id}`"></span>
+                <span class="text-sm bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full ml-2" x-text="q.section"></span>
+              </h3>
+              <div class="flex gap-2 mt-1">
+                <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full" x-text="q.difficulty"></span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
+                      x-show="answers[q.id]?.completed"
+                      x-text="answers[q.id]?.correct ? 'Correct' : 'Incorrect'"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question Content -->
+          <div class="mb-6 space-y-4">
+            <p class="text-gray-800 leading-relaxed" x-text="q.text"></p>
+            
+            <!-- SQL Schema Display -->
+            <template x-if="q.schema">
+              <div class="schema-panel p-4 rounded-md mt-4">
+                <div class="text-sm font-mono text-gray-500 mb-2">Database Schema:</div>
+                <pre class="text-xs overflow-x-auto bg-gray-900 text-green-400 p-3 rounded"><code x-text="q.schema"></code></pre>
+              </div>
+            </template>
+            
+            <!-- Chart Visualization -->
+            <template x-if="q.chartData">
+              <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="text-sm font-mono text-gray-500 mb-2">Data Visualization:</div>
+                <div class="h-64 relative">
+                  <canvas :id="`chart-${q.id}`" class="max-w-full max-h-full"></canvas>
+                </div>
+              </div>
+            </template>
+
+            <!-- Hint Display -->
+            <div x-show="q.hintShown" x-transition class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+              <h4 class="text-sm font-medium text-yellow-800">Hint:</h4>
+              <p class="text-sm text-yellow-700 mt-1" x-text="q.hint"></p>
+            </div>
+          </div>
+
+          <!-- Answer Input Area -->
+          <div class="space-y-4">
+            <label class="block text-sm font-medium text-gray-700">Your Answer:</label>
+            <textarea class="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" 
+                      rows="4" 
+                      placeholder="Type your answer here..."
+                      x-model="answers[q.id].value"
+                      :disabled="answers[q.id]?.completed"
+                      @focus="setActiveQuestion(q.id)"></textarea>
+            
+            <div class="text-xs text-gray-500 text-right" x-show="answers[q.id]?.value">
+              <span x-text="answers[q.id]?.value?.length || 0"></span> characters
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap justify-between gap-3 mt-6">
+            <button class="text-gray-500 hover:text-gray-700 flex items-center text-sm transition-colors"
+                    @click="showHint(q.id)" 
+                    x-show="!q.hintShown && !answers[q.id]?.completed">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Need a hint?
+            </button>
+            
+            <div class="flex gap-3 ml-auto">
+              <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+                      @click="resetAnswer(q.id)" 
+                      x-show="answers[q.id]?.value && !answers[q.id]?.completed">
+                Clear
+              </button>
+              <button class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors flex items-center"
+                      @click="checkAnswer(q.id)"
+                      x-show="!answers[q.id]?.completed"
+                      :disabled="!answers[q.id]?.value?.trim()">
+                <span x-show="!loading">Submit Answer</span>
+                <span x-show="loading" class="flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Checking...
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Feedback Section -->
+          <div class="mt-6 p-4 rounded-md transition-all duration-300 overflow-hidden"
+               :class="{
+                 'max-h-0 opacity-0': !answers[q.id]?.completed,
+                 'max-h-screen opacity-100': answers[q.id]?.completed,
+                 'bg-green-50 border-l-4 border-green-500': answers[q.id]?.correct,
+                 'bg-red-50 border-l-4 border-red-500': !answers[q.id]?.correct && answers[q.id]?.completed
+               }"
+               x-show="answers[q.id]?.completed">
+            
+            <h4 class="font-semibold mb-2 flex items-center"
+                :class="answers[q.id]?.correct ? 'text-green-700' : 'text-red-700'">
+              <template x-if="answers[q.id]?.correct">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  Correct Answer!
+                </span>
+              </template>
+              <template x-if="!answers[q.id]?.correct && answers[q.id]?.completed">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                  Suggested Answer
+                </span>
+              </template>
+            </h4>
+
+            <div class="mt-3">
+              <h5 class="text-sm font-medium text-gray-700 mb-2">Expected Answer:</h5>
+              <div class="bg-gray-900 text-green-400 p-3 rounded-md font-mono text-sm overflow-x-auto">
+                <pre x-text="q.answer"></pre>
+              </div>
+            </div>
+
+            <template x-if="q.explanation">
+              <div class="mt-3">
+                <h5 class="font-medium text-gray-800 mb-1">Explanation:</h5>
+                <p class="text-gray-700 leading-relaxed" x-text="q.explanation"></p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- Completion Screen -->
+      <div x-show="completedCount === questions.length" x-transition class="text-center py-16">
+        <h2 class="text-3xl font-bold text-indigo-700 mt-6">🎉 Test Completed!</h2>
+        <div class="text-xl text-gray-600 mt-3 space-y-2">
+          <p>You answered <span class="font-bold text-green-600" x-text="correctAnswers"></span> out of <span class="font-bold" x-text="questions.length"></span> questions correctly</p>
+          <p class="text-lg">Final Score: <span class="font-bold text-indigo-600" x-text="`${Math.round((correctAnswers/questions.length)*100)}%`"></span></p>
+        </div>
+        
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+          <p class="text-blue-800 font-medium" x-text="getPerformanceMessage()"></p>
+        </div>
+
+        <button @click="resetTest()" class="mt-6 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg transition-colors">
+          Start New Test
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function debounce(func, delay) {
+      let timeoutId;
+      return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+
+    function calculateSimilarity(str1, str2) {
+      if (!str1 || !str2) return 0;
+      const longer = str1.length > str2.length ? str1 : str2;
+      const shorter = str1.length > str2.length ? str2 : str1;
+      if (longer.length === 0) return 1;
+      const distance = levenshteinDistance(longer.toLowerCase(), shorter.toLowerCase());
+      return (longer.length - distance) / longer.length;
+    }
+
+    function levenshteinDistance(str1, str2) {
+      const matrix = [];
+      for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return matrix[str2.length][str1.length];
+    }
+
+    const QUESTIONS_DATA = [
+      {
+        id: 1,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a SQL query to find the top 3 categories with the highest total quantity ordered by customers from the South region in May 2024.',
+        schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  name VARCHAR(100),
+  region VARCHAR(50)
+);
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT REFERENCES customers(customer_id),
+  order_date DATE,
+  total_amount DECIMAL(10,2)
+);
+
+CREATE TABLE order_items (
+  item_id INT PRIMARY KEY,
+  order_id INT REFERENCES orders(order_id),
+  product_id INT REFERENCES products(product_id),
+  quantity INT,
+  price DECIMAL(10,2)
+);
+
+CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  name VARCHAR(100),
+  category VARCHAR(50)
+);`,
+        answer: `SELECT p.category, SUM(oi.quantity) as total_quantity
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+JOIN orders o ON oi.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE c.region = 'South'
+  AND EXTRACT(MONTH FROM o.order_date) = 5
+  AND EXTRACT(YEAR FROM o.order_date) = 2024
+GROUP BY p.category
+ORDER BY total_quantity DESC
+LIMIT 3;`,
+        explanation: 'This query joins all relevant tables to connect customers to products through orders and order items. It filters for the South region and May 2024 dates, calculates total quantity ordered for each category using SUM and GROUP BY, then returns the top 3 categories ordered by total quantity in descending order.',
+        hint: 'You need to join 4 tables: customers, orders, order_items, and products. Filter by region and date, then group by category and sum quantities.'
+      },
+      {
+        id: 2,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Find all customers who placed orders in March 2024 but did not place any orders in April 2024.',
+        schema: 'Using the same database schema as Question 1',
+        answer: `SELECT DISTINCT c.customer_id, c.name
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE EXTRACT(MONTH FROM o.order_date) = 3
+  AND EXTRACT(YEAR FROM o.order_date) = 2024
+  AND c.customer_id NOT IN (
+    SELECT customer_id FROM orders
+    WHERE EXTRACT(MONTH FROM order_date) = 4
+      AND EXTRACT(YEAR FROM order_date) = 2024
+  );`,
+        explanation: 'This query first finds customers with orders in March 2024, then excludes those who also placed orders in April 2024 using NOT IN with a subquery. The DISTINCT ensures each customer appears only once.',
+        hint: 'Use a subquery with NOT IN to exclude customers who ordered in April. Consider using EXTRACT to filter by month and year.'
+      },
+      {
+        id: 3,
+        section: 'Excel',
+        difficulty: 'Medium',
+        text: 'Describe the steps to create a dynamic profit margin slicer in an Excel dashboard that allows filtering of products based on profit margin ranges.',
+        chartData: {
+          type: 'bar',
+          labels: ['Electronics', 'Clothing', 'Home Goods', 'Groceries', 'Sports', 'Books'],
+          datasets: [{
+            label: 'Profit Margin %',
+            data: [32, 45, 28, 19, 38, 41],
+            backgroundColor: [
+              'rgba(79, 70, 229, 0.8)',
+              'rgba(99, 102, 241, 0.8)',
+              'rgba(129, 140, 248, 0.8)',
+              'rgba(165, 180, 252, 0.8)',
+              'rgba(199, 210, 254, 0.8)',
+              'rgba(233, 213, 255, 0.8)'
+            ],
+            borderColor: [
+              'rgba(79, 70, 229, 1)',
+              'rgba(99, 102, 241, 1)',
+              'rgba(129, 140, 248, 1)',
+              'rgba(165, 180, 252, 1)',
+              'rgba(199, 210, 254, 1)',
+              'rgba(233, 213, 255, 1)'
+            ],
+            borderWidth: 2
+          }]
+        },
+        answer: `1. Create a calculated column for Profit Margin:
+   Formula: =(Revenue - Cost)/Revenue
+
+2. Create profit margin range categories:
+   - Add a helper column with ranges (0-20%, 21-40%, 41%+)
+   - Use IF statements: =IF(Profit_Margin<=0.2,"0-20%",IF(Profit_Margin<=0.4,"21-40%","41%+"))
+
+3. Build a PivotTable:
+   - Rows: Product Category, Product Name
+   - Values: Sum of Revenue, Average of Profit Margin
+   - Filters: Profit Margin Range
+
+4. Insert Slicer:
+   - Select PivotTable → Insert → Slicer
+   - Choose "Profit Margin Range" field
+   - Format slicer for better appearance
+
+5. Connect to dashboard charts:
+   - Select slicer → PivotTable Analyze → Filter Connections
+   - Connect to all relevant PivotTables and charts`,
+        explanation: 'This creates an interactive dashboard where users can filter products by profit margin ranges. The slicer provides visual filtering capabilities that update all connected charts and tables simultaneously.',
+        hint: 'Start by creating calculated fields for profit margins, then use PivotTables and slicers to create the interactive filtering functionality.'
+      },
+      {
+        id: 4,
+        section: 'Python',
+        difficulty: 'Medium',
+        text: 'Write Python code to scrape product reviews from an e-commerce website and perform basic sentiment analysis.',
+        answer: `import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from textblob import TextBlob
+import time
+
+def scrape_reviews(product_url, max_pages=5):
+    reviews = []
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    
+    for page in range(1, max_pages + 1):
+        try:
+            response = requests.get(f"{product_url}&page={page}", headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            review_elements = soup.find_all('div', class_='review-item')
+            
+            for review in review_elements:
+                rating = review.find('span', class_='rating').text if review.find('span', class_='rating') else 'N/A'
+                text = review.find('p', class_='review-text').text.strip() if review.find('p', class_='review-text') else ''
+                date = review.find('span', class_='review-date').text if review.find('span', class_='review-date') else ''
+                
+                # Sentiment analysis
+                blob = TextBlob(text)
+                sentiment = blob.sentiment.polarity
+                
+                reviews.append({
+                    'rating': rating,
+                    'text': text,
+                    'date': date,
+                    'sentiment_score': sentiment,
+                    'sentiment': 'positive' if sentiment > 0.1 else 'negative' if sentiment < -0.1 else 'neutral'
+                })
+            
+            time.sleep(1)  # Be respectful to the server
+            
+        except Exception as e:
+            print(f"Error scraping page {page}: {e}")
+            continue
+    
+    return pd.DataFrame(reviews)
+
+# Usage
+df = scrape_reviews("https://example-ecommerce.com/product-reviews")
+print(df.groupby('sentiment').size())
+df.to_csv('product_reviews.csv', index=False)`,
+        explanation: 'This script scrapes product reviews using BeautifulSoup, performs sentiment analysis with TextBlob, and exports the data to CSV. It includes error handling and rate limiting to be respectful to the target website.',
+        hint: 'Use requests and BeautifulSoup for scraping, TextBlob for sentiment analysis, and pandas for data manipulation. Always include error handling and respect robots.txt.'
+      },
+      {
+        id: 5,
+        section: 'Business',
+        difficulty: 'Hard',
+        text: 'A company notices that customer churn rate increased from 5% to 12% after implementing a new pricing strategy. Monthly revenue increased by 8%, but customer acquisition cost rose by 30%. Should they continue with the new strategy?',
+        answer: `Analysis Framework:
+
+1. Customer Lifetime Value (CLV) Impact:
+   - Calculate CLV before: Revenue_per_month / Churn_rate_old
+   - Calculate CLV after: Revenue_per_month * 1.08 / Churn_rate_new
+   - Compare: New CLV vs Old CLV
+
+2. Profitability Analysis:
+   - Net Revenue Change: +8% revenue impact
+   - Churn Impact: Higher churn = shorter customer lifespan
+   - CAC Impact: +30% increase in acquisition costs
+   - Break-even analysis: How long to recover CAC
+
+3. Key Metrics to Evaluate:
+   - CLV to CAC ratio (should be 3:1 or higher)
+   - Payback period for customer acquisition
+   - Contribution margin analysis
+   - Segment analysis: Which customers are churning?
+
+4. Recommendation Framework:
+   If CLV/CAC > 3 and payback period < 12 months → Continue but optimize
+   If margins maintained despite higher churn → Monitor for 2-3 months
+   Implement retention strategies to reduce churn
+   Consider tiered pricing to retain price-sensitive segments
+
+5. Action Items:
+   - A/B test pricing adjustments
+   - Implement customer feedback loops
+   - Develop retention campaigns targeting at-risk segments
+   - Monitor competitor responses and market positioning`,
+        explanation: 'This business scenario requires balancing multiple competing metrics. The key is understanding whether the revenue gains offset the increased costs and churn, while considering long-term customer value and market positioning.',
+        hint: 'Think about Customer Lifetime Value, acquisition costs, and the long-term impact of higher churn rates. Consider both financial metrics and competitive positioning.'
+      }
+    ];
+
+    function practiceTest() {
+      return {
+        questions: QUESTIONS_DATA,
+        answers: {},
+        activeQuestion: null,
+        completedCount: 0,
+        correctAnswers: 0,
+        loading: false,
+        error: null,
+        validateAnswerDebounced: null,
+        
+        async init() {
+          try {
+            this.loading = true;
+            this.error = null;
+
+            this.initializeAnswers();
+            this.loadProgress();
+            await this.initializeCharts();
+            
+            this.loading = false;
+            
+          } catch (error) {
+            this.loading = false;
+            this.error = this.formatError(error);
+            console.error('Initialization error:', error);
+          }
+        },
+
+        initializeAnswers() {
+          this.answers = {};
+          this.questions.forEach(question => {
+            this.answers[question.id] = {
+              value: '',
+              completed: false,
+              correct: false,
+              attempts: 0,
+              timeSpent: 0,
+              startTime: null
+            };
+          });
+        },
+
+        async initializeCharts() {
+          try {
+            await this.$nextTick();
+            
+            setTimeout(() => {
+              this.questions.forEach(question => {
+                if (question.chartData) {
+                  this.createChart(question.id, question.chartData);
+                }
+              });
+            }, 100);
+          } catch (error) {
+            console.error('Error initializing charts:', error);
+          }
+        },
+
+        createChart(questionId, chartData) {
+          const canvas = document.getElementById(`chart-${questionId}`);
+          if (!canvas) return;
+
+          const ctx = canvas.getContext('2d');
+          
+          new Chart(ctx, {
+            type: chartData.type || 'bar',
+            data: chartData,
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    usePointStyle: true,
+                    padding: 15
+                  }
+                }
+              },
+              scales: chartData.type === 'pie' || chartData.type === 'doughnut' ? {} : {
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                x: {
+                  grid: {
+                    display: false
+                  }
+                }
+              }
+            }
+          });
+        },
+
+        setActiveQuestion(questionId) {
+          this.activeQuestion = questionId;
+          
+          if (!this.answers[questionId].startTime) {
+            this.answers[questionId].startTime = Date.now();
+          }
+        },
+
+        showHint(questionId) {
+          const question = this.questions.find(q => q.id === questionId);
+          if (question) {
+            question.hintShown = true;
+            this.saveProgress();
+          }
+        },
+
+        async checkAnswer(questionId) {
+          try {
+            this.loading = true;
+            this.error = null;
+
+            const answer = this.answers[questionId];
+            const question = this.questions.find(q => q.id === questionId);
+
+            if (!answer || !question) {
+              throw new Error('Question or answer not found');
+            }
+
+            if (!answer.value.trim()) {
+              throw new Error('Please provide an answer before submitting');
+            }
+
+            if (answer.startTime) {
+              answer.timeSpent += Date.now() - answer.startTime;
+              answer.startTime = null;
+            }
+
+            const similarity = calculateSimilarity(answer.value.toLowerCase(), question.answer.toLowerCase());
+            const isCorrect = similarity > 0.3 || answer.value.trim().length > 50;
+
+            answer.completed = true;
+            answer.correct = isCorrect;
+            answer.attempts += 1;
+            answer.similarity = similarity;
+
+            this.updateCounters();
+
+            setTimeout(() => {
+              const feedbackElement = document.querySelector(`[x-show="answers[${questionId}]?.completed"]`);
+              if (feedbackElement) {
+                feedbackElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 100);
+
+            this.saveProgress();
+            this.loading = false;
+
+          } catch (error) {
+            this.loading = false;
+            this.error = this.formatError(error);
+          }
+        },
+
+        resetAnswer(questionId) {
+          const answer = this.answers[questionId];
+          if (answer) {
+            answer.value = '';
+            answer.completed = false;
+            answer.correct = false;
+            answer.startTime = null;
+            
+            this.updateCounters();
+            this.saveProgress();
+          }
+        },
+
+        updateCounters() {
+          this.completedCount = Object.values(this.answers).filter(a => a.completed).length;
+          this.correctAnswers = Object.values(this.answers).filter(a => a.correct).length;
+        },
+
+        getPerformanceMessage() {
+          const percentage = (this.correctAnswers / this.questions.length) * 100;
+          
+          if (percentage >= 90) {
+            return 'Outstanding! You have excellent data analysis skills!';
+          } else if (percentage >= 80) {
+            return 'Great job! You demonstrate strong analytical abilities.';
+          } else if (percentage >= 70) {
+            return 'Good work! You have a solid foundation in data analysis.';
+          } else if (percentage >= 60) {
+            return 'Fair performance. Consider reviewing the concepts and practicing more.';
+          } else {
+            return 'Keep learning! Focus on the fundamental concepts and practice regularly.';
+          }
+        },
+
+        resetTest() {
+          if (!confirm('Are you sure you want to reset the test? All progress will be lost.')) {
+            return;
+          }
+
+          this.clearProgress();
+          this.initializeAnswers();
+          this.completedCount = 0;
+          this.correctAnswers = 0;
+          this.activeQuestion = null;
+          this.error = null;
+
+          this.questions.forEach(question => {
+            question.hintShown = false;
+          });
+
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        saveProgress() {
+          const progressData = {
+            answers: this.answers,
+            completedCount: this.completedCount,
+            correctAnswers: this.correctAnswers,
+            hints: this.questions.map(q => ({ id: q.id, hintShown: q.hintShown || false })),
+            timestamp: Date.now()
+          };
+
+          try {
+            localStorage.setItem('practiceTestProgress', JSON.stringify(progressData));
+          } catch (error) {
+            console.error('Failed to save progress:', error);
+          }
+        },
+
+        loadProgress() {
+          try {
+            const item = localStorage.getItem('practiceTestProgress');
+            const progressData = item ? JSON.parse(item) : null;
+            
+            if (progressData && progressData.timestamp) {
+              const hoursOld = (Date.now() - progressData.timestamp) / (1000 * 60 * 60);
+              
+              if (hoursOld < 24) {
+                this.answers = { ...this.answers, ...progressData.answers };
+                this.completedCount = progressData.completedCount || 0;
+                this.correctAnswers = progressData.correctAnswers || 0;
+                
+                if (progressData.hints) {
+                  progressData.hints.forEach(hint => {
+                    const question = this.questions.find(q => q.id === hint.id);
+                    if (question) {
+                      question.hintShown = hint.hintShown;
+                    }
+                  });
+                }
+                
+                console.log('Progress loaded from localStorage');
+              } else {
+                this.clearProgress();
+              }
+            }
+          } catch (error) {
+            console.error('Failed to load progress:', error);
+          }
+        },
+
+        clearProgress() {
+          try {
+            localStorage.removeItem('practiceTestProgress');
+          } catch (error) {
+            console.error('Failed to clear progress:', error);
+          }
+        },
+
+        formatError(error) {
+          if (error instanceof Error) {
+            return error.message;
+          }
+          
+          if (typeof error === 'string') {
+            return error;
+          }
+          
+          return 'An unexpected error occurred. Please try again.';
+        }
+      };
+    }
+
+    window.practiceTest = practiceTest;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Data Analyst Practice Test initialized');
+    });
+  </script>
+</body>
+</html>
