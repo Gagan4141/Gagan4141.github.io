@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Analyst Practice Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.0/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .schema-panel {
+      background-color: #f8fafc;
+      border-left: 4px solid #94a3b8;
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen font-sans">
+  <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-10 text-center shadow-md">
+    <h1 class="text-5xl font-bold">📊 SQL Interview Practice Test</h1>
+    <p class="text-lg mt-3">50 Essential SQL Interview Questions</p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-12">
+    <div x-data="practiceTest()" x-init="init()" class="space-y-8">
+
+      <!-- Progress Tracker -->
+      <div class="bg-white p-6 rounded-2xl shadow-md sticky top-4 z-10">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-semibold text-gray-700">Your Progress</h2>
+          <span class="text-indigo-600 font-bold" x-text="`${completedCount}/${questions.length}`"></span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
+               :style="`width: ${(completedCount/questions.length)*100}%`"></div>
+        </div>
+        <div class="mt-3 text-sm text-gray-600" x-show="completedCount > 0">
+          <span>Score: </span>
+          <span class="font-semibold text-indigo-600" x-text="`${correctAnswers}/${completedCount}`"></span>
+          <span x-text="`(${Math.round((correctAnswers/completedCount)*100)}%)`"></span>
+        </div>
+      </div>
+
+      <!-- Error Display -->
+      <div x-show="error" x-transition class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+        <p class="text-sm text-red-700" x-text="error"></p>
+      </div>
+
+      <!-- Questions Section -->
+      <template x-for="(q, index) in questions" :key="q.id">
+        <div class="bg-white p-6 rounded-2xl shadow-md transition duration-300 mb-8"
+             :class="{'ring-2 ring-indigo-500': activeQuestion === q.id}">
+          
+          <!-- Question Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 class="text-xl font-semibold text-blue-700">
+                <span x-text="`Question ${q.id}`"></span>
+                <span class="text-sm bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full ml-2" x-text="q.section"></span>
+              </h3>
+              <div class="flex gap-2 mt-1">
+                <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full" x-text="q.difficulty"></span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
+                      x-show="answers[q.id]?.completed"
+                      x-text="answers[q.id]?.correct ? 'Correct' : 'Incorrect'"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question Content -->
+          <div class="mb-6 space-y-4">
+            <p class="text-gray-800 leading-relaxed" x-text="q.text"></p>
+            
+            <!-- SQL Schema Display -->
+            <template x-if="q.schema">
+              <div class="schema-panel p-4 rounded-md mt-4">
+                <div class="text-sm font-mono text-gray-500 mb-2">Database Schema:</div>
+                <pre class="text-xs overflow-x-auto bg-gray-900 text-green-400 p-3 rounded"><code x-text="q.schema"></code></pre>
+              </div>
+            </template>
+            
+            <!-- Chart Visualization -->
+            <template x-if="q.chartData">
+              <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="text-sm font-mono text-gray-500 mb-2">Data Visualization:</div>
+                <div class="h-64 relative">
+                  <canvas :id="`chart-${q.id}`" class="max-w-full max-h-full"></canvas>
+                </div>
+              </div>
+            </template>
+
+            <!-- Hint Display -->
+            <div x-show="q.hintShown" x-transition class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+              <h4 class="text-sm font-medium text-yellow-800">Hint:</h4>
+              <p class="text-sm text-yellow-700 mt-1" x-text="q.hint"></p>
+            </div>
+          </div>
+
+          <!-- Answer Input Area -->
+          <div class="space-y-4">
+            <label class="block text-sm font-medium text-gray-700">Your Answer:</label>
+            <textarea class="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" 
+                      rows="4" 
+                      placeholder="Type your SQL query here..."
+                      x-model="answers[q.id].value"
+                      :disabled="answers[q.id]?.completed"
+                      @focus="setActiveQuestion(q.id)"></textarea>
+            
+            <div class="text-xs text-gray-500 text-right" x-show="answers[q.id]?.value">
+              <span x-text="answers[q.id]?.value?.length || 0"></span> characters
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap justify-between gap-3 mt-6">
+            <button class="text-gray-500 hover:text-gray-700 flex items-center text-sm transition-colors"
+                    @click="showHint(q.id)" 
+                    x-show="!q.hintShown && !answers[q.id]?.completed">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Need a hint?
+            </button>
+            
+            <div class="flex gap-3 ml-auto">
+              <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+                      @click="resetAnswer(q.id)" 
+                      x-show="answers[q.id]?.value && !answers[q.id]?.completed">
+                Clear
+              </button>
+              <button class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors flex items-center"
+                      @click="checkAnswer(q.id)"
+                      x-show="!answers[q.id]?.completed"
+                      :disabled="!answers[q.id]?.value?.trim()">
+                <span x-show="!loading">Submit Answer</span>
+                <span x-show="loading" class="flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Checking...
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Feedback Section -->
+          <div class="mt-6 p-4 rounded-md transition-all duration-300 overflow-hidden"
+               :class="{
+                 'max-h-0 opacity-0': !answers[q.id]?.completed,
+                 'max-h-screen opacity-100': answers[q.id]?.completed,
+                 'bg-green-50 border-l-4 border-green-500': answers[q.id]?.correct,
+                 'bg-red-50 border-l-4 border-red-500': !answers[q.id]?.correct && answers[q.id]?.completed
+               }"
+               x-show="answers[q.id]?.completed">
+            
+            <h4 class="font-semibold mb-2 flex items-center"
+                :class="answers[q.id]?.correct ? 'text-green-700' : 'text-red-700'">
+              <template x-if="answers[q.id]?.correct">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  Correct Answer!
+                </span>
+              </template>
+              <template x-if="!answers[q.id]?.correct && answers[q.id]?.completed">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                  Suggested Answer
+                </span>
+              </template>
+            </h4>
+
+            <div class="mt-3">
+              <h5 class="text-sm font-medium text-gray-700 mb-2">Expected Answer:</h5>
+              <div class="bg-gray-900 text-green-400 p-3 rounded-md font-mono text-sm overflow-x-auto">
+                <pre x-text="q.answer"></pre>
+              </div>
+            </div>
+
+            <template x-if="q.explanation">
+              <div class="mt-3">
+                <h5 class="font-medium text-gray-800 mb-1">Explanation:</h5>
+                <p class="text-gray-700 leading-relaxed" x-text="q.explanation"></p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- Completion Screen -->
+      <div x-show="completedCount === questions.length" x-transition class="text-center py-16">
+        <h2 class="text-3xl font-bold text-indigo-700 mt-6">🎉 Test Completed!</h2>
+        <div class="text-xl text-gray-600 mt-3 space-y-2">
+          <p>You answered <span class="font-bold text-green-600" x-text="correctAnswers"></span> out of <span class="font-bold" x-text="questions.length"></span> questions correctly</p>
+          <p class="text-lg">Final Score: <span class="font-bold text-indigo-600" x-text="`${Math.round((correctAnswers/questions.length)*100)}%`"></span></p>
+        </div>
+        
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+          <p class="text-blue-800 font-medium" x-text="getPerformanceMessage()"></p>
+        </div>
+
+        <button @click="resetTest()" class="mt-6 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg transition-colors">
+          Start New Test
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function debounce(func, delay) {
+      let timeoutId;
+      return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+
+    function calculateSimilarity(str1, str2) {
+      if (!str1 || !str2) return 0;
+      const longer = str1.length > str2.length ? str1 : str2;
+      const shorter = str1.length > str2.length ? str2 : str1;
+      if (longer.length === 0) return 1;
+      const distance = levenshteinDistance(longer.toLowerCase(), shorter.toLowerCase());
+      return (longer.length - distance) / longer.length;
+    }
+
+    function levenshteinDistance(str1, str2) {
+      const matrix = [];
+      for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      return matrix[str2.length][str1.length];
+    }
+
+    const QUESTIONS_DATA = [
+      // Basic SELECT Queries
+      {
+        id: 1,
+        section: 'SQL',
+        difficulty: 'Easy',
+        text: 'Write a query to select all columns from the employees table.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT * FROM employees;',
+        hint: 'Use the asterisk (*) to select all columns.',
+        explanation: 'The asterisk (*) is a wildcard that selects all columns from the specified table.'
+      },
+      {
+        id: 2,
+        section: 'SQL',
+        difficulty: 'Easy',
+        text: 'Write a query to find all employees with a salary greater than 50000.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT * FROM employees WHERE salary > 50000;',
+        hint: 'Use the WHERE clause with a comparison operator.',
+        explanation: 'The WHERE clause filters rows based on specified conditions. The > operator checks for values greater than the specified amount.'
+      },
+      {
+        id: 3,
+        section: 'SQL',
+        difficulty: 'Easy',
+        text: 'Write a query to select the first name, last name, and email of all employees.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT first_name, last_name, email FROM employees;',
+        hint: 'List the specific column names separated by commas.',
+        explanation: 'When you need specific columns, list them explicitly in the SELECT clause separated by commas.'
+      },
+      {
+        id: 4,
+        section: 'SQL',
+        difficulty: 'Easy',
+        text: 'Write a query to find all employees in the "Sales" department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: "SELECT * FROM employees WHERE department = 'Sales';",
+        hint: 'Use the WHERE clause with string comparison. Remember to use quotes for string values.',
+        explanation: 'String comparisons in SQL require single quotes around the string value. The equals operator (=) checks for exact matches.'
+      },
+      {
+        id: 5,
+        section: 'SQL',
+        difficulty: 'Easy',
+        text: 'Write a query to count the total number of employees.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT COUNT(*) FROM employees;',
+        hint: 'Use the COUNT() aggregate function.',
+        explanation: 'COUNT(*) returns the total number of rows in the table, including rows with NULL values.'
+      },
+
+      // Intermediate Queries
+      {
+        id: 6,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find the average salary by department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT department, AVG(salary) FROM employees GROUP BY department;',
+        hint: 'Use GROUP BY with an aggregate function.',
+        explanation: 'GROUP BY groups rows that have the same values in specified columns. AVG() calculates the average value for each group.'
+      },
+      {
+        id: 7,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find employees whose first name starts with "A".',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: "SELECT * FROM employees WHERE first_name LIKE 'A%';",
+        hint: 'Use the LIKE operator with a wildcard.',
+        explanation: 'The LIKE operator is used for pattern matching. The % wildcard represents zero or more characters.'
+      },
+      {
+        id: 8,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find the top 5 highest-paid employees.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT * FROM employees ORDER BY salary DESC LIMIT 5;',
+        hint: 'Use ORDER BY with DESC and LIMIT.',
+        explanation: 'ORDER BY sorts the results. DESC sorts in descending order (highest first). LIMIT restricts the number of rows returned.'
+      },
+      {
+        id: 9,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find departments with more than 3 employees.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: 'SELECT department, COUNT(*) FROM employees GROUP BY department HAVING COUNT(*) > 3;',
+        hint: 'Use GROUP BY and HAVING with COUNT().',
+        explanation: 'HAVING is used to filter groups created by GROUP BY, similar to how WHERE filters individual rows.'
+      },
+      {
+        id: 10,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find employees hired in the year 2023.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2),
+  hire_date DATE
+);`,
+        answer: "SELECT * FROM employees WHERE YEAR(hire_date) = 2023;",
+        hint: 'Use the YEAR() function to extract the year from a date.',
+        explanation: 'The YEAR() function extracts the year component from a date value, allowing you to filter by specific years.'
+      },
+
+      // JOIN Operations
+      {
+        id: 11,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to join employees with their department information.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  department_id INT,
+  salary DECIMAL(10,2)
+);
+
+CREATE TABLE departments (
+  department_id INT PRIMARY KEY,
+  department_name VARCHAR(50),
+  location VARCHAR(100)
+);`,
+        answer: 'SELECT e.first_name, e.last_name, d.department_name, d.location FROM employees e JOIN departments d ON e.department_id = d.department_id;',
+        hint: 'Use INNER JOIN with table aliases.',
+        explanation: 'JOIN combines rows from two tables based on a related column. Table aliases (e, d) make the query more readable.'
+      },
+      {
+        id: 12,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find all departments and their employee count, including departments with no employees.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  department_id INT,
+  salary DECIMAL(10,2)
+);
+
+CREATE TABLE departments (
+  department_id INT PRIMARY KEY,
+  department_name VARCHAR(50),
+  location VARCHAR(100)
+);`,
+        answer: 'SELECT d.department_name, COUNT(e.employee_id) FROM departments d LEFT JOIN employees e ON d.department_id = e.department_id GROUP BY d.department_id, d.department_name;',
+        hint: 'Use LEFT JOIN to include all departments.',
+        explanation: 'LEFT JOIN returns all rows from the left table (departments) even if there are no matching rows in the right table (employees).'
+      },
+      {
+        id: 13,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find employees who earn more than the average salary in their department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  department_id INT,
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT e1.first_name, e1.last_name, e1.salary FROM employees e1 WHERE e1.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department_id = e1.department_id);',
+        hint: 'Use a correlated subquery to compare with department average.',
+        explanation: 'A correlated subquery references columns from the outer query. Here it calculates the average salary for each employees department.'
+      },
+      {
+        id: 14,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find the second highest salary.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT MAX(salary) FROM employees WHERE salary < (SELECT MAX(salary) FROM employees);',
+        hint: 'Find the maximum salary that is less than the overall maximum.',
+        explanation: 'This query finds the highest salary that is still less than the absolute maximum salary, giving us the second highest.'
+      },
+      {
+        id: 15,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to calculate the running total of sales.',
+        schema: `CREATE TABLE sales (
+  sale_id INT PRIMARY KEY,
+  sale_date DATE,
+  amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT sale_id, sale_date, amount, SUM(amount) OVER (ORDER BY sale_date) as running_total FROM sales;',
+        hint: 'Use window functions with OVER clause.',
+        explanation: 'Window functions perform calculations across a set of rows. The OVER clause with ORDER BY creates a running total.'
+      },
+
+      // Advanced Queries
+      {
+        id: 16,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to rank employees by salary within each department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT first_name, last_name, department, salary, RANK() OVER (PARTITION BY department ORDER BY salary DESC) as salary_rank FROM employees;',
+        hint: 'Use RANK() window function with PARTITION BY.',
+        explanation: 'PARTITION BY divides the result set into partitions. RANK() assigns a rank to each row within its partition based on the ORDER BY clause.'
+      },
+      {
+        id: 17,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find employees who have been with the company for more than 5 years.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  hire_date DATE
+);`,
+        answer: 'SELECT * FROM employees WHERE DATEDIFF(CURRENT_DATE, hire_date) > 1825;',
+        hint: 'Use DATEDIFF function to calculate the difference in days (5 years = 1825 days).',
+        explanation: 'DATEDIFF calculates the difference between two dates in days. 5 years approximately equals 1825 days.'
+      },
+      {
+        id: 18,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find the most expensive product in each category.',
+        schema: `CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  product_name VARCHAR(100),
+  category VARCHAR(50),
+  price DECIMAL(10,2)
+);`,
+        answer: 'SELECT category, product_name, price FROM products p1 WHERE price = (SELECT MAX(price) FROM products p2 WHERE p2.category = p1.category);',
+        hint: 'Use a correlated subquery to find the maximum price per category.',
+        explanation: 'This correlated subquery finds the maximum price for each category and returns products that match that maximum price.'
+      },
+      {
+        id: 19,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to calculate the percentage of total sales for each product.',
+        schema: `CREATE TABLE sales (
+  product_id INT,
+  product_name VARCHAR(100),
+  sales_amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT product_name, sales_amount, (sales_amount * 100.0 / (SELECT SUM(sales_amount) FROM sales)) as percentage FROM sales;',
+        hint: 'Divide each sales amount by the total sales and multiply by 100.',
+        explanation: 'This calculates what percentage each products sales represents of the total sales across all products.'
+      },
+      {
+        id: 20,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find customers who have made purchases in all available product categories.',
+        schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  customer_name VARCHAR(100)
+);
+
+CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  category VARCHAR(50)
+);
+
+CREATE TABLE purchases (
+  customer_id INT,
+  product_id INT
+);`,
+        answer: 'SELECT c.customer_name FROM customers c WHERE (SELECT COUNT(DISTINCT p.category) FROM purchases pu JOIN products p ON pu.product_id = p.product_id WHERE pu.customer_id = c.customer_id) = (SELECT COUNT(DISTINCT category) FROM products);',
+        hint: 'Compare the count of distinct categories purchased by each customer with the total count of categories.',
+        explanation: 'This query uses division concept - finding customers whose distinct category count equals the total category count.'
+      },
+
+      // Subqueries and CTEs
+      {
+        id: 21,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query using CTE to find the hierarchy of employees and their managers.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  manager_id INT
+);`,
+        answer: `WITH employee_hierarchy AS (
+  SELECT employee_id, first_name, last_name, manager_id, 1 as level
+  FROM employees WHERE manager_id IS NULL
+  UNION ALL
+  SELECT e.employee_id, e.first_name, e.last_name, e.manager_id, eh.level + 1
+  FROM employees e
+  JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
+)
+SELECT * FROM employee_hierarchy;`,
+        hint: 'Use a recursive CTE with UNION ALL.',
+        explanation: 'Recursive CTEs can traverse hierarchical data. The base case finds top-level managers, then recursively finds their subordinates.'
+      },
+      {
+        id: 22,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find products that have never been ordered.',
+        schema: `CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  product_name VARCHAR(100)
+);
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  product_id INT,
+  quantity INT
+);`,
+        answer: 'SELECT p.product_id, p.product_name FROM products p LEFT JOIN orders o ON p.product_id = o.product_id WHERE o.product_id IS NULL;',
+        hint: 'Use LEFT JOIN and check for NULL values.',
+        explanation: 'LEFT JOIN includes all products. WHERE o.product_id IS NULL finds products that have no matching orders.'
+      },
+      {
+        id: 23,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find the difference between consecutive order dates for each customer.',
+        schema: `CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  order_date DATE
+);`,
+        answer: 'SELECT customer_id, order_date, LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) as prev_order_date, DATEDIFF(order_date, LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date)) as days_between FROM orders;',
+        hint: 'Use LAG() window function to get the previous order date.',
+        explanation: 'LAG() accesses data from a previous row. PARTITION BY customer_id ensures we compare within each customer.'
+      },
+      {
+        id: 24,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find the top 3 products by sales in each region.',
+        schema: `CREATE TABLE sales (
+  product_id INT,
+  product_name VARCHAR(100),
+  region VARCHAR(50),
+  sales_amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT * FROM (SELECT product_name, region, sales_amount, ROW_NUMBER() OVER (PARTITION BY region ORDER BY sales_amount DESC) as rn FROM sales) ranked WHERE rn <= 3;',
+        hint: 'Use ROW_NUMBER() window function and filter the results.',
+        explanation: 'ROW_NUMBER() assigns sequential numbers within each partition. We then filter to keep only the top 3 for each region.'
+      },
+      {
+        id: 25,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to calculate the cumulative percentage of sales.',
+        schema: `CREATE TABLE sales (
+  sale_id INT PRIMARY KEY,
+  sale_date DATE,
+  amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT sale_id, amount, (SUM(amount) OVER (ORDER BY sale_date) * 100.0 / SUM(amount) OVER ()) as cumulative_percentage FROM sales ORDER BY sale_date;',
+        hint: 'Use window functions to calculate running sum and total sum.',
+        explanation: 'This calculates what percentage of total sales has been achieved up to each point in time.'
+      },
+
+      // Data Manipulation
+      {
+        id: 26,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to update employee salaries by giving a 10% raise to employees in the Sales department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: "UPDATE employees SET salary = salary * 1.10 WHERE department = 'Sales';",
+        hint: 'Use UPDATE with SET and WHERE clauses.',
+        explanation: 'UPDATE modifies existing records. SET specifies the new values, WHERE determines which rows to update.'
+      },
+      {
+        id: 27,
+        section: 'SQL',
+        difficulty: 'Easy',
+        text: 'Write a query to insert a new employee record.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: "INSERT INTO employees (employee_id, first_name, last_name, department, salary) VALUES (101, 'John', 'Smith', 'IT', 60000);",
+        hint: 'Use INSERT INTO with VALUES clause.',
+        explanation: 'INSERT INTO adds new rows to a table. Specify the column names and corresponding values.'
+      },
+      {
+        id: 28,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to delete employees who have been inactive for more than 2 years.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  last_activity_date DATE
+);`,
+        answer: 'DELETE FROM employees WHERE DATEDIFF(CURRENT_DATE, last_activity_date) > 730;',
+        hint: 'Use DELETE with WHERE clause and date calculation.',
+        explanation: 'DELETE removes rows that match the WHERE condition. 730 days represents approximately 2 years.'
+      },
+      {
+        id: 29,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to create a backup of the employees table.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: 'CREATE TABLE employees_backup AS SELECT * FROM employees;',
+        hint: 'Use CREATE TABLE with AS SELECT statement.',
+        explanation: 'CREATE TABLE ... AS SELECT creates a new table with the structure and data from an existing table.'
+      },
+      {
+        id: 30,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to merge data from a staging table into the main table, updating existing records and inserting new ones.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  salary DECIMAL(10,2)
+);
+
+CREATE TABLE employees_staging (
+  employee_id INT,
+  first_name VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: `MERGE employees AS target
+USING employees_staging AS source
+ON target.employee_id = source.employee_id
+WHEN MATCHED THEN
+  UPDATE SET first_name = source.first_name, salary = source.salary
+WHEN NOT MATCHED THEN
+  INSERT (employee_id, first_name, salary)
+  VALUES (source.employee_id, source.first_name, source.salary);`,
+        hint: 'Use MERGE statement with WHEN MATCHED and WHEN NOT MATCHED clauses.',
+        explanation: 'MERGE performs INSERT, UPDATE, or DELETE operations in a single statement based on matching conditions.'
+      },
+
+      // String and Date Functions
+      {
+        id: 31,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to format employee names as "Last, First" and find the length of each formatted name.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50)
+);`,
+        answer: 'SELECT CONCAT(last_name, \', \', first_name) as formatted_name, LENGTH(CONCAT(last_name, \', \', first_name)) as name_length FROM employees;',
+        hint: 'Use CONCAT() for string concatenation and LENGTH() for string length.',
+        explanation: 'CONCAT() joins strings together. LENGTH() returns the number of characters in a string.'
+      },
+      {
+        id: 32,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to extract the domain from email addresses.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  email VARCHAR(100)
+);`,
+        answer: 'SELECT email, SUBSTRING(email, POSITION(\'@\' IN email) + 1) as domain FROM employees;',
+        hint: 'Use SUBSTRING() and POSITION() functions.',
+        explanation: 'POSITION() finds the location of the @ symbol, SUBSTRING() extracts everything after it.'
+      },
+      {
+        id: 33,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to find employees hired in the last 30 days.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR(50),
+  hire_date DATE
+);`,
+        answer: 'SELECT * FROM employees WHERE hire_date >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY);',
+        hint: 'Use DATE_SUB() with INTERVAL to subtract days from current date.',
+        explanation: 'DATE_SUB() subtracts a specified time interval from a date. INTERVAL defines the amount and unit of time.'
+      },
+      {
+        id: 34,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to format dates as "Month DD, YYYY" format.',
+        schema: `CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  order_date DATE
+);`,
+        answer: 'SELECT order_id, DATE_FORMAT(order_date, \'%M %d, %Y\') as formatted_date FROM orders;',
+        hint: 'Use DATE_FORMAT() with appropriate format specifiers.',
+        explanation: 'DATE_FORMAT() converts dates to specified string formats. %M = month name, %d = day, %Y = 4-digit year.'
+      },
+      {
+        id: 35,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find overlapping date ranges in project assignments.',
+        schema: `CREATE TABLE project_assignments (
+  employee_id INT,
+  project_id INT,
+  start_date DATE,
+  end_date DATE
+);`,
+        answer: 'SELECT DISTINCT p1.employee_id FROM project_assignments p1 JOIN project_assignments p2 ON p1.employee_id = p2.employee_id AND p1.project_id != p2.project_id WHERE p1.start_date <= p2.end_date AND p1.end_date >= p2.start_date;',
+        hint: 'Self-join the table and check for overlapping date conditions.',
+        explanation: 'Two date ranges overlap if the start of one is before or on the end of the other, and vice versa.'
+      },
+
+      // Advanced Analytics
+      {
+        id: 36,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to calculate the moving average of sales over the last 3 months.',
+        schema: `CREATE TABLE sales (
+  sale_date DATE,
+  amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT sale_date, amount, AVG(amount) OVER (ORDER BY sale_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg FROM sales ORDER BY sale_date;',
+        hint: 'Use window function with ROWS BETWEEN clause.',
+        explanation: 'ROWS BETWEEN 2 PRECEDING AND CURRENT ROW creates a window of the current row and the 2 rows before it.'
+      },
+      {
+        id: 37,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find the median salary by department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT department, AVG(salary) as median_salary FROM (SELECT department, salary, ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary) as rn, COUNT(*) OVER (PARTITION BY department) as cnt FROM employees) t WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2) GROUP BY department;',
+        hint: 'Use ROW_NUMBER() to find middle values and average them.',
+        explanation: 'This calculates median by finding the middle value(s) using ROW_NUMBER() and averaging them for even counts.'
+      },
+      {
+        id: 38,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to calculate the year-over-year growth rate of sales.',
+        schema: `CREATE TABLE sales (
+  year INT,
+  total_sales DECIMAL(12,2)
+);`,
+        answer: 'SELECT year, total_sales, LAG(total_sales) OVER (ORDER BY year) as prev_year_sales, ((total_sales - LAG(total_sales) OVER (ORDER BY year)) * 100.0 / LAG(total_sales) OVER (ORDER BY year)) as growth_rate FROM sales;',
+        hint: 'Use LAG() to get previous year sales and calculate percentage change.',
+        explanation: 'Growth rate = (Current Year - Previous Year) / Previous Year * 100. LAG() gets the previous years value.'
+      },
+      {
+        id: 39,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find gaps in a sequence of dates.',
+        schema: `CREATE TABLE events (
+  event_date DATE
+);`,
+        answer: 'SELECT DATE_ADD(event_date, INTERVAL 1 DAY) as gap_start, DATE_SUB(next_date, INTERVAL 1 DAY) as gap_end FROM (SELECT event_date, LEAD(event_date) OVER (ORDER BY event_date) as next_date FROM events) t WHERE DATEDIFF(next_date, event_date) > 1;',
+        hint: 'Use LEAD() to get the next date and find where the difference is more than 1 day.',
+        explanation: 'LEAD() gets the next row value. Gaps exist where consecutive dates differ by more than 1 day.'
+      },
+      {
+        id: 40,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to pivot monthly sales data to show columns for each month.',
+        schema: `CREATE TABLE monthly_sales (
+  year INT,
+  month INT,
+  sales DECIMAL(10,2)
+);`,
+        answer: 'SELECT year, SUM(CASE WHEN month = 1 THEN sales END) as Jan, SUM(CASE WHEN month = 2 THEN sales END) as Feb, SUM(CASE WHEN month = 3 THEN sales END) as Mar, SUM(CASE WHEN month = 4 THEN sales END) as Apr, SUM(CASE WHEN month = 5 THEN sales END) as May, SUM(CASE WHEN month = 6 THEN sales END) as Jun FROM monthly_sales GROUP BY year;',
+        hint: 'Use CASE statements with SUM() to pivot the data.',
+        explanation: 'CASE statements with conditional aggregation transform rows into columns, creating a pivot table effect.'
+      },
+
+      // Performance and Optimization
+      {
+        id: 41,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to identify duplicate records in the customers table.',
+        schema: `CREATE TABLE customers (
+  customer_id INT,
+  email VARCHAR(100),
+  first_name VARCHAR(50),
+  last_name VARCHAR(50)
+);`,
+        answer: 'SELECT email, first_name, last_name, COUNT(*) FROM customers GROUP BY email, first_name, last_name HAVING COUNT(*) > 1;',
+        hint: 'Use GROUP BY with HAVING to find duplicates.',
+        explanation: 'GROUP BY groups identical records together, HAVING COUNT(*) > 1 filters to show only groups with multiple records.'
+      },
+      {
+        id: 42,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find the nth highest salary without using LIMIT or TOP.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT salary FROM employees e1 WHERE (SELECT COUNT(DISTINCT salary) FROM employees e2 WHERE e2.salary > e1.salary) = N-1;',
+        hint: 'Count how many distinct salaries are higher than each salary.',
+        explanation: 'For the nth highest salary, there should be exactly n-1 distinct salaries higher than it. Replace N with the desired rank.'
+      },
+      {
+        id: 43,
+        section: 'SQL',
+        difficulty: 'Medium',
+        text: 'Write a query to remove duplicate records, keeping only the one with the highest ID.',
+        schema: `CREATE TABLE customers (
+  customer_id INT,
+  email VARCHAR(100),
+  first_name VARCHAR(50)
+);`,
+        answer: 'DELETE c1 FROM customers c1 JOIN customers c2 WHERE c1.email = c2.email AND c1.customer_id < c2.customer_id;',
+        hint: 'Self-join the table and delete records with lower IDs.',
+        explanation: 'This self-join finds duplicate emails and deletes the records with lower customer_id values, keeping the highest ID.'
+      },
+      {
+        id: 44,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find employees whose salary is in the top 10% of their department.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT * FROM (SELECT *, PERCENT_RANK() OVER (PARTITION BY department ORDER BY salary DESC) as percentile FROM employees) ranked WHERE percentile <= 0.1;',
+        hint: 'Use PERCENT_RANK() window function.',
+        explanation: 'PERCENT_RANK() calculates the percentile rank of each row. Values <= 0.1 represent the top 10%.'
+      },
+      {
+        id: 45,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find the longest consecutive sequence of days with sales.',
+        schema: `CREATE TABLE daily_sales (
+  sale_date DATE,
+  amount DECIMAL(10,2)
+);`,
+        answer: 'WITH date_groups AS (SELECT sale_date, ROW_NUMBER() OVER (ORDER BY sale_date) as rn, DATE_SUB(sale_date, INTERVAL ROW_NUMBER() OVER (ORDER BY sale_date) DAY) as group_date FROM daily_sales) SELECT group_date, COUNT(*) as consecutive_days FROM date_groups GROUP BY group_date ORDER BY consecutive_days DESC LIMIT 1;',
+        hint: 'Use ROW_NUMBER() and date arithmetic to identify consecutive groups.',
+        explanation: 'Subtracting ROW_NUMBER() from dates creates groups where consecutive dates have the same group_date value.'
+      },
+
+      // Complex Business Logic
+      {
+        id: 46,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to calculate customer lifetime value (total purchases divided by customer tenure in years).',
+        schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  signup_date DATE
+);
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  order_amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT c.customer_id, COALESCE(SUM(o.order_amount), 0) / GREATEST(DATEDIFF(CURRENT_DATE, c.signup_date) / 365.0, 1) as lifetime_value FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.signup_date;',
+        hint: 'Calculate total orders and divide by years since signup.',
+        explanation: 'CLV = Total Purchases / Tenure. GREATEST() ensures we dont divide by zero for new customers.'
+      },
+      {
+        id: 47,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to find products that are frequently bought together (market basket analysis).',
+        schema: `CREATE TABLE order_items (
+  order_id INT,
+  product_id INT,
+  product_name VARCHAR(100)
+);`,
+        answer: 'SELECT oi1.product_name as product_1, oi2.product_name as product_2, COUNT(*) as frequency FROM order_items oi1 JOIN order_items oi2 ON oi1.order_id = oi2.order_id AND oi1.product_id < oi2.product_id GROUP BY oi1.product_id, oi2.product_id, oi1.product_name, oi2.product_name ORDER BY frequency DESC;',
+        hint: 'Self-join on order_id and ensure product_id comparison to avoid duplicates.',
+        explanation: 'This finds product pairs that appear in the same orders. The < condition prevents counting the same pair twice.'
+      },
+      {
+        id: 48,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to calculate the retention rate of customers month over month.',
+        schema: `CREATE TABLE user_activity (
+  user_id INT,
+  activity_date DATE
+);`,
+        answer: 'SELECT month_year, active_users, retained_users, (retained_users * 100.0 / LAG(active_users) OVER (ORDER BY month_year)) as retention_rate FROM (SELECT DATE_FORMAT(activity_date, \'%Y-%m\') as month_year, COUNT(DISTINCT user_id) as active_users, COUNT(DISTINCT CASE WHEN prev_month_active.user_id IS NOT NULL THEN ua.user_id END) as retained_users FROM user_activity ua LEFT JOIN (SELECT DISTINCT user_id, DATE_FORMAT(DATE_ADD(activity_date, INTERVAL 1 MONTH), \'%Y-%m\') as next_month FROM user_activity) prev_month_active ON ua.user_id = prev_month_active.user_id AND DATE_FORMAT(ua.activity_date, \'%Y-%m\') = prev_month_active.next_month GROUP BY month_year) monthly_stats ORDER BY month_year;',
+        hint: 'Calculate active users per month and those who were also active in the previous month.',
+        explanation: 'Retention rate = (Users active in both current and previous month) / (Users active in previous month) * 100.'
+      },
+      {
+        id: 49,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to implement a recommendation system showing "customers who bought this also bought".',
+        schema: `CREATE TABLE purchases (
+  customer_id INT,
+  product_id INT,
+  product_name VARCHAR(100)
+);`,
+        answer: 'SELECT p1.product_name as source_product, p2.product_name as recommended_product, COUNT(*) as recommendation_strength FROM purchases p1 JOIN purchases p2 ON p1.customer_id = p2.customer_id AND p1.product_id != p2.product_id GROUP BY p1.product_id, p2.product_id, p1.product_name, p2.product_name ORDER BY p1.product_name, recommendation_strength DESC;',
+        hint: 'Find products purchased by the same customers.',
+        explanation: 'This finds product pairs purchased by the same customers, ordered by frequency to show the strongest recommendations.'
+      },
+      {
+        id: 50,
+        section: 'SQL',
+        difficulty: 'Hard',
+        text: 'Write a query to detect anomalies in daily sales (values more than 2 standard deviations from the mean).',
+        schema: `CREATE TABLE daily_sales (
+  sale_date DATE,
+  total_sales DECIMAL(12,2)
+);`,
+        answer: 'SELECT sale_date, total_sales, avg_sales, stddev_sales, (total_sales - avg_sales) / stddev_sales as z_score FROM (SELECT sale_date, total_sales, AVG(total_sales) OVER () as avg_sales, STDDEV(total_sales) OVER () as stddev_sales FROM daily_sales) stats WHERE ABS((total_sales - avg_sales) / stddev_sales) > 2;',
+        hint: 'Calculate z-score and find values with absolute z-score > 2.',
+        explanation: 'Z-score = (value - mean) / standard deviation. Values with |z-score| > 2 are considered anomalies (outside 2 standard deviations).'
+      }
+    ];
+
+    function practiceTest() {
+      return {
+        questions: QUESTIONS_DATA,
+        answers: {},
+        activeQuestion: null,
+        completedCount: 0,
+        correctAnswers: 0,
+        loading: false,
+        error: null,
+
+        init() {
+          // Initialize answer objects for all questions
+          this.questions.forEach(q => {
+            this.answers[q.id] = {
+              value: '',
+              completed: false,
+              correct: false
+            };
+          });
+          
+          // Initialize charts if any question has chart data
+          this.$nextTick(() => {
+            this.questions.forEach(q => {
+              if (q.chartData) {
+                this.initChart(q.id, q.chartData);
+              }
+            });
+          });
+        },
+
+        initChart(questionId, chartData) {
+          const ctx = document.getElementById(`chart-${questionId}`);
+          if (ctx) {
+            new Chart(ctx, chartData);
+          }
+        },
+
+        setActiveQuestion(questionId) {
+          this.activeQuestion = questionId;
+        },
+
+        showHint(questionId) {
+          const question = this.questions.find(q => q.id === questionId);
+          if (question) {
+            question.hintShown = true;
+          }
+        },
+
+        resetAnswer(questionId) {
+          this.answers[questionId].value = '';
+        },
+
+        checkAnswer(questionId) {
+          this.loading = true;
+          this.error = null;
+
+          // Simulate processing delay
+          setTimeout(() => {
+            const question = this.questions.find(q => q.id === questionId);
+            const userAnswer = this.answers[questionId].value.trim().toLowerCase();
+            const correctAnswer = question.answer.toLowerCase();
+
+            // Simple similarity check for SQL queries
+            const similarity = calculateSimilarity(userAnswer, correctAnswer);
+            const isCorrect = similarity > 0.6; // 60% similarity threshold
+
+            this.answers[questionId].completed = true;
+            this.answers[questionId].correct = isCorrect;
+
+            if (!this.answers[questionId].wasCompleted) {
+              this.completedCount++;
+              this.answers[questionId].wasCompleted = true;
+              
+              if (isCorrect) {
+                this.correctAnswers++;
+              }
+            }
+
+            this.loading = false;
+          }, 1000);
+        },
+
+        resetTest() {
+          this.questions.forEach(q => {
+            this.answers[q.id] = {
+              value: '',
+              completed: false,
+              correct: false,
+              wasCompleted: false
+            };
+            q.hintShown = false;
+          });
+          this.completedCount = 0;
+          this.correctAnswers = 0;
+          this.activeQuestion = null;
+          this.error = null;
+        },
+
+        getPerformanceMessage() {
+          const percentage = (this.correctAnswers / this.questions.length) * 100;
+          if (percentage >= 90) return "🏆 Excellent! You're ready for senior SQL roles!";
+          if (percentage >= 80) return "🎯 Great job! You have strong SQL fundamentals!";
+          if (percentage >= 70) return "👍 Good work! Review the missed concepts and try again!";
+          if (percentage >= 60) return "📚 Keep practicing! Focus on the areas you struggled with!";
+          return "💪 Don't give up! SQL mastery comes with practice!";
+        }
+      };
+    }
+  </script>
+</body>
+</html>
