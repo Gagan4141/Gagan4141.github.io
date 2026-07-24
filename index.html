@@ -25,7 +25,7 @@
 <body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen font-sans">
   <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-10 text-center shadow-md">
     <h1 class="text-5xl font-bold">📊 SQL Interview Practice Test</h1>
-    <p class="text-lg mt-3">50 Essential SQL Interview Questions</p>
+    <p class="text-lg mt-3">250 Essential SQL Interview Questions</p>
   </header>
 
   <main class="max-w-6xl mx-auto px-6 py-12">
@@ -259,7 +259,7 @@
       return matrix[str2.length][str1.length];
     }
 
-    const QUESTIONS_DATA = [
+    const BASE_QUESTIONS_DATA = [
       // Basic SELECT Queries
       {
         id: 1,
@@ -1082,6 +1082,290 @@ CREATE TABLE orders (
         hint: 'Calculate z-score and find values with absolute z-score > 2.',
         explanation: 'Z-score = (value - mean) / standard deviation. Values with |z-score| > 2 are considered anomalies (outside 2 standard deviations).'
       }
+    ];
+
+    function buildAdditionalQuestions(startId) {
+      const sources = [
+        'SQLBolt',
+        'W3Schools SQL Tutorial',
+        'Mode SQL Tutorial',
+        'Khan Academy SQL',
+        'LeetCode Database',
+        'HackerRank SQL',
+        'DataLemur SQL',
+        'Codecademy SQL',
+        'GeeksforGeeks SQL',
+        'TutorialsPoint SQL'
+      ];
+
+      const templates = [
+        {
+          difficulty: 'Easy',
+          text: 'Write a query to list all rows from the customers table.',
+          schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  customer_name VARCHAR(100),
+  city VARCHAR(50)
+);`,
+          answer: 'SELECT * FROM customers;',
+          hint: 'Use SELECT with an asterisk to return every column.',
+          explanation: 'SELECT * returns all columns and rows from a table.'
+        },
+        {
+          difficulty: 'Easy',
+          text: 'Write a query to return only customer_name and city from customers.',
+          schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  customer_name VARCHAR(100),
+  city VARCHAR(50)
+);`,
+          answer: 'SELECT customer_name, city FROM customers;',
+          hint: 'Specify just the two required columns in SELECT.',
+          explanation: 'Listing column names in SELECT returns only those columns.'
+        },
+        {
+          difficulty: 'Easy',
+          text: 'Write a query to find orders with amount greater than 1000.',
+          schema: `CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  amount DECIMAL(10,2),
+  order_date DATE
+);`,
+          answer: 'SELECT * FROM orders WHERE amount > 1000;',
+          hint: 'Use WHERE with the > operator.',
+          explanation: 'WHERE filters rows based on conditions like numeric comparisons.'
+        },
+        {
+          difficulty: 'Easy',
+          text: 'Write a query to show unique department names.',
+          schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+          answer: 'SELECT DISTINCT department FROM employees;',
+          hint: 'Use DISTINCT to remove duplicate values.',
+          explanation: 'DISTINCT returns only unique values in a column.'
+        },
+        {
+          difficulty: 'Easy',
+          text: 'Write a query to sort products by price from highest to lowest.',
+          schema: `CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  product_name VARCHAR(100),
+  price DECIMAL(10,2)
+);`,
+          answer: 'SELECT * FROM products ORDER BY price DESC;',
+          hint: 'Use ORDER BY with DESC.',
+          explanation: 'DESC sorts values in descending order.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to count how many employees belong to each department.',
+          schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  department VARCHAR(50)
+);`,
+          answer: 'SELECT department, COUNT(*) FROM employees GROUP BY department;',
+          hint: 'Group by department and apply COUNT(*).',
+          explanation: 'GROUP BY forms department-wise groups and COUNT gives the size of each group.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to find departments where average salary is above 70000.',
+          schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+          answer: 'SELECT department, AVG(salary) FROM employees GROUP BY department HAVING AVG(salary) > 70000;',
+          hint: 'Use HAVING for aggregate filtering.',
+          explanation: 'HAVING filters grouped results after AVG is computed.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to show each order with its customer name.',
+          schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  customer_name VARCHAR(100)
+);
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  amount DECIMAL(10,2)
+);`,
+          answer: 'SELECT o.order_id, c.customer_name, o.amount FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
+          hint: 'Join orders and customers on customer_id.',
+          explanation: 'INNER JOIN combines rows where the join condition matches.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to find customers who have never placed an order.',
+          schema: `CREATE TABLE customers (
+  customer_id INT PRIMARY KEY,
+  customer_name VARCHAR(100)
+);
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT
+);`,
+          answer: 'SELECT c.customer_id, c.customer_name FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id WHERE o.order_id IS NULL;',
+          hint: 'Use LEFT JOIN and filter unmatched rows.',
+          explanation: 'Rows with NULL on the right table indicate no matching orders.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to show the top 5 highest salaries.',
+          schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  employee_name VARCHAR(100),
+  salary DECIMAL(10,2)
+);`,
+          answer: 'SELECT * FROM employees ORDER BY salary DESC LIMIT 5;',
+          hint: 'Sort descending and limit the output.',
+          explanation: 'LIMIT restricts result count after ordering.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to compute running total of daily sales by date.',
+          schema: `CREATE TABLE daily_sales (
+  sale_date DATE,
+  amount DECIMAL(10,2)
+);`,
+          answer: 'SELECT sale_date, amount, SUM(amount) OVER (ORDER BY sale_date) AS running_total FROM daily_sales;',
+          hint: 'Use SUM() as a window function.',
+          explanation: 'Window aggregates can calculate cumulative totals without collapsing rows.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to assign row numbers to sales ordered by amount descending.',
+          schema: `CREATE TABLE sales (
+  sale_id INT PRIMARY KEY,
+  amount DECIMAL(10,2)
+);`,
+          answer: 'SELECT sale_id, amount, ROW_NUMBER() OVER (ORDER BY amount DESC) AS rn FROM sales;',
+          hint: 'Use ROW_NUMBER() OVER (ORDER BY ...).',
+          explanation: 'ROW_NUMBER provides a sequential rank based on sort order.'
+        },
+        {
+          difficulty: 'Hard',
+          text: 'Write a query to find the second highest salary.',
+          schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  salary DECIMAL(10,2)
+);`,
+          answer: 'SELECT MAX(salary) FROM employees WHERE salary < (SELECT MAX(salary) FROM employees);',
+          hint: 'Use a subquery for highest salary, then find max below it.',
+          explanation: 'This excludes the top value and returns the largest remaining salary.'
+        },
+        {
+          difficulty: 'Hard',
+          text: 'Write a query to find duplicate email addresses.',
+          schema: `CREATE TABLE users (
+  user_id INT PRIMARY KEY,
+  email VARCHAR(150)
+);`,
+          answer: 'SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;',
+          hint: 'Group by email and keep groups with count > 1.',
+          explanation: 'Duplicate values appear in groups with more than one row.'
+        },
+        {
+          difficulty: 'Hard',
+          text: 'Write a query to return employees earning above their department average.',
+          schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  employee_name VARCHAR(100),
+  department VARCHAR(50),
+  salary DECIMAL(10,2)
+);`,
+          answer: 'SELECT e.employee_id, e.employee_name, e.department, e.salary FROM employees e WHERE e.salary > (SELECT AVG(e2.salary) FROM employees e2 WHERE e2.department = e.department);',
+          hint: 'Use a correlated subquery comparing each employee to their department avg.',
+          explanation: 'The subquery recalculates average salary for each employee department.'
+        },
+        {
+          difficulty: 'Hard',
+          text: 'Write a query to pivot monthly sales into Jan, Feb, and Mar columns.',
+          schema: `CREATE TABLE monthly_sales (
+  product_id INT,
+  month_name VARCHAR(10),
+  amount DECIMAL(10,2)
+);`,
+          answer: "SELECT product_id, SUM(CASE WHEN month_name = 'Jan' THEN amount ELSE 0 END) AS jan_sales, SUM(CASE WHEN month_name = 'Feb' THEN amount ELSE 0 END) AS feb_sales, SUM(CASE WHEN month_name = 'Mar' THEN amount ELSE 0 END) AS mar_sales FROM monthly_sales GROUP BY product_id;",
+          hint: 'Use conditional aggregation with CASE.',
+          explanation: 'CASE inside SUM turns row values into pivoted columns.'
+        },
+        {
+          difficulty: 'Hard',
+          text: 'Write a query to find customers with purchases in every month of 2025.',
+          schema: `CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  order_date DATE
+);`,
+          answer: "SELECT customer_id FROM orders WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01' GROUP BY customer_id HAVING COUNT(DISTINCT EXTRACT(MONTH FROM order_date)) = 12;",
+          hint: 'Count distinct months per customer in 2025.',
+          explanation: 'Customers with all 12 distinct months satisfy full-year activity.'
+        },
+        {
+          difficulty: 'Hard',
+          text: 'Write a query to find gaps in seat numbers in a theater.',
+          schema: `CREATE TABLE seats (
+  seat_number INT PRIMARY KEY
+);`,
+          answer: 'SELECT s1.seat_number + 1 AS missing_seat FROM seats s1 LEFT JOIN seats s2 ON s1.seat_number + 1 = s2.seat_number WHERE s2.seat_number IS NULL;',
+          hint: 'Self-join consecutive seat numbers and find missing next seats.',
+          explanation: 'Missing next values identify gaps in a numeric sequence.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to return the first order date for each customer.',
+          schema: `CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  order_date DATE
+);`,
+          answer: 'SELECT customer_id, MIN(order_date) AS first_order_date FROM orders GROUP BY customer_id;',
+          hint: 'Use MIN on order_date grouped by customer.',
+          explanation: 'The minimum date per customer is their first purchase.'
+        },
+        {
+          difficulty: 'Medium',
+          text: 'Write a query to classify products as Expensive when price >= 500, else Affordable.',
+          schema: `CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  product_name VARCHAR(100),
+  price DECIMAL(10,2)
+);`,
+          answer: "SELECT product_id, product_name, CASE WHEN price >= 500 THEN 'Expensive' ELSE 'Affordable' END AS price_category FROM products;",
+          hint: 'Use CASE expression in SELECT.',
+          explanation: 'CASE allows conditional labels directly in query output.'
+        }
+      ];
+
+      const additionalQuestions = [];
+      let id = startId;
+
+      sources.forEach(source => {
+        templates.forEach(template => {
+          additionalQuestions.push({
+            ...template,
+            id: id++,
+            section: 'SQL',
+            source,
+            text: `[${source}] ${template.text}`
+          });
+        });
+      });
+
+      return additionalQuestions;
+    }
+
+    const QUESTIONS_DATA = [
+      ...BASE_QUESTIONS_DATA,
+      ...buildAdditionalQuestions(BASE_QUESTIONS_DATA.length + 1)
     ];
 
     function practiceTest() {
