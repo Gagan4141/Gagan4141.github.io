@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Data Analyst Practice Test</title>
+  <title>SQL Interview Practice Test</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.13.0/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -138,9 +138,9 @@
               <button class="bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors flex items-center"
                       @click="checkAnswer(q.id)"
                       x-show="!answers[q.id]?.completed"
-                      :disabled="!answers[q.id]?.value?.trim()">
-                <span x-show="!loading">Submit Answer</span>
-                <span x-show="loading" class="flex items-center">
+                      :disabled="!answers[q.id]?.value?.trim() || isChecking(q.id)">
+                <span x-show="!isChecking(q.id)">Submit Answer</span>
+                <span x-show="isChecking(q.id)" class="flex items-center">
                   <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -218,12 +218,14 @@
   </main>
 
   <script>
-    function debounce(func, delay) {
-      let timeoutId;
-      return function (...args) {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => func.apply(this, args), delay);
-      };
+    const ANSWER_SIMILARITY_THRESHOLD = 0.6;
+
+    function normalizeSql(input) {
+      return input
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([(),;=<>+-])\s*/g, '$1')
+        .toLowerCase();
     }
 
     function calculateSimilarity(str1, str2) {
@@ -1091,7 +1093,7 @@ CREATE TABLE orders (
         activeQuestion: null,
         completedCount: 0,
         correctAnswers: 0,
-        loading: false,
+        checkingQuestionId: null,
         error: null,
 
         init() {
@@ -1100,7 +1102,8 @@ CREATE TABLE orders (
             this.answers[q.id] = {
               value: '',
               completed: false,
-              correct: false
+              correct: false,
+              wasCompleted: false
             };
           });
           
@@ -1136,33 +1139,48 @@ CREATE TABLE orders (
           this.answers[questionId].value = '';
         },
 
+        isChecking(questionId) {
+          return this.checkingQuestionId === questionId;
+        },
+
         checkAnswer(questionId) {
-          this.loading = true;
+          if (this.isChecking(questionId)) return;
+
+          const question = this.questions.find(q => q.id === questionId);
+          const answerState = this.answers[questionId];
+          if (!question || !answerState) {
+            this.error = 'Unable to evaluate this answer. Please refresh and try again.';
+            return;
+          }
+
+          const rawAnswer = answerState.value.trim();
+          if (!rawAnswer) return;
+
+          this.checkingQuestionId = questionId;
           this.error = null;
 
           // Simulate processing delay
           setTimeout(() => {
-            const question = this.questions.find(q => q.id === questionId);
-            const userAnswer = this.answers[questionId].value.trim().toLowerCase();
-            const correctAnswer = question.answer.toLowerCase();
+            const userAnswer = normalizeSql(rawAnswer);
+            const correctAnswer = normalizeSql(question.answer);
 
             // Simple similarity check for SQL queries
             const similarity = calculateSimilarity(userAnswer, correctAnswer);
-            const isCorrect = similarity > 0.6; // 60% similarity threshold
+            const isCorrect = similarity > ANSWER_SIMILARITY_THRESHOLD;
 
-            this.answers[questionId].completed = true;
-            this.answers[questionId].correct = isCorrect;
+            answerState.completed = true;
+            answerState.correct = isCorrect;
 
-            if (!this.answers[questionId].wasCompleted) {
+            if (!answerState.wasCompleted) {
               this.completedCount++;
-              this.answers[questionId].wasCompleted = true;
+              answerState.wasCompleted = true;
               
               if (isCorrect) {
                 this.correctAnswers++;
               }
             }
 
-            this.loading = false;
+            this.checkingQuestionId = null;
           }, 1000);
         },
 
@@ -1179,6 +1197,7 @@ CREATE TABLE orders (
           this.completedCount = 0;
           this.correctAnswers = 0;
           this.activeQuestion = null;
+          this.checkingQuestionId = null;
           this.error = null;
         },
 
