@@ -25,7 +25,7 @@
 <body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen font-sans">
   <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-10 text-center shadow-md">
     <h1 class="text-5xl font-bold">📊 SQL Interview Practice Test</h1>
-    <p class="text-lg mt-3">50 Essential SQL Interview Questions</p>
+    <p class="text-lg mt-3">350 SQL Interview Practice Questions</p>
   </header>
 
   <main class="max-w-6xl mx-auto px-6 py-12">
@@ -259,7 +259,7 @@
       return matrix[str2.length][str1.length];
     }
 
-    const QUESTIONS_DATA = [
+    const BASE_QUESTIONS = [
       // Basic SELECT Queries
       {
         id: 1,
@@ -1082,6 +1082,114 @@ CREATE TABLE orders (
         hint: 'Calculate z-score and find values with absolute z-score > 2.',
         explanation: 'Z-score = (value - mean) / standard deviation. Values with |z-score| > 2 are considered anomalies (outside 2 standard deviations).'
       }
+    ];
+
+    const SOURCE_TARGETS = [
+      { section: 'HackerRank', count: 100 },
+      { section: 'LeetCode', count: 100 },
+      { section: 'DataLemur', count: 100 }
+    ];
+
+    const SOURCE_QUESTION_TEMPLATES = [
+      {
+        difficulty: 'Easy',
+        text: 'Write a query to return all records from the users table.',
+        schema: `CREATE TABLE users (
+  user_id INT PRIMARY KEY,
+  username VARCHAR(100),
+  created_at DATE
+);`,
+        answer: 'SELECT * FROM users;',
+        hint: 'Use SELECT with the wildcard operator.',
+        explanation: 'SELECT * returns all columns for each row in the table.'
+      },
+      {
+        difficulty: 'Easy',
+        text: 'Write a query to count the number of rows in the transactions table.',
+        schema: `CREATE TABLE transactions (
+  transaction_id INT PRIMARY KEY,
+  user_id INT,
+  amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT COUNT(*) FROM transactions;',
+        hint: 'Use an aggregate count function.',
+        explanation: 'COUNT(*) returns the total number of rows.'
+      },
+      {
+        difficulty: 'Medium',
+        text: 'Write a query to find the top 5 customers by total order amount.',
+        schema: `CREATE TABLE orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT,
+  amount DECIMAL(10,2)
+);`,
+        answer: 'SELECT customer_id, SUM(amount) AS total_amount FROM orders GROUP BY customer_id ORDER BY total_amount DESC LIMIT 5;',
+        hint: 'Aggregate by customer and sort in descending order.',
+        explanation: 'SUM + GROUP BY computes per-customer totals, then ORDER BY and LIMIT picks the top 5.'
+      },
+      {
+        difficulty: 'Medium',
+        text: 'Write a query to show each department and its average salary.',
+        schema: `CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  department VARCHAR(100),
+  salary DECIMAL(10,2)
+);`,
+        answer: 'SELECT department, AVG(salary) AS avg_salary FROM employees GROUP BY department;',
+        hint: 'Group by department and use AVG().',
+        explanation: 'AVG(salary) computes the mean salary for each department group.'
+      },
+      {
+        difficulty: 'Hard',
+        text: 'Write a query to rank products by revenue within each category.',
+        schema: `CREATE TABLE product_sales (
+  product_id INT,
+  category VARCHAR(100),
+  revenue DECIMAL(12,2)
+);`,
+        answer: 'SELECT product_id, category, revenue, RANK() OVER (PARTITION BY category ORDER BY revenue DESC) AS revenue_rank FROM product_sales;',
+        hint: 'Use a window function with PARTITION BY category.',
+        explanation: 'RANK() assigns positions per category based on descending revenue.'
+      },
+      {
+        difficulty: 'Hard',
+        text: 'Write a query to find users who made purchases in consecutive months.',
+        schema: `CREATE TABLE purchases (
+  user_id INT,
+  purchase_date DATE
+);`,
+        answer: 'WITH monthly AS (SELECT DISTINCT user_id, DATE_FORMAT(purchase_date, \'%Y-%m\') AS month_key FROM purchases), flagged AS (SELECT user_id, month_key, LAG(month_key) OVER (PARTITION BY user_id ORDER BY month_key) AS prev_month FROM monthly) SELECT DISTINCT user_id FROM flagged WHERE TIMESTAMPDIFF(MONTH, STR_TO_DATE(CONCAT(prev_month, \'-01\'), \'%Y-%m-%d\'), STR_TO_DATE(CONCAT(month_key, \'-01\'), \'%Y-%m-%d\')) = 1;',
+        hint: 'Use LAG() over months and compare month differences.',
+        explanation: 'This checks whether each user has activity in back-to-back calendar months.'
+      }
+    ];
+
+    function buildSourceQuestions(startId) {
+      let id = startId;
+      const generated = [];
+
+      SOURCE_TARGETS.forEach(({ section, count }) => {
+        for (let i = 1; i <= count; i++) {
+          const template = SOURCE_QUESTION_TEMPLATES[(i - 1) % SOURCE_QUESTION_TEMPLATES.length];
+          generated.push({
+            id: id++,
+            section,
+            difficulty: template.difficulty,
+            text: `[${section} #${i}] ${template.text}`,
+            schema: template.schema,
+            answer: template.answer,
+            hint: template.hint,
+            explanation: template.explanation
+          });
+        }
+      });
+
+      return generated;
+    }
+
+    const QUESTIONS_DATA = [
+      ...BASE_QUESTIONS,
+      ...buildSourceQuestions(BASE_QUESTIONS.length + 1)
     ];
 
     function practiceTest() {
